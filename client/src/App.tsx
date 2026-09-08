@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Route, Switch } from "wouter";
+import { Route, Router as WouterRouter, Switch } from "wouter";
+import { useHashLocation } from "wouter/use-hash-location";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -9,8 +10,14 @@ import Checkout, { ProductDetails } from "./pages/Checkout";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 
+function useDevMarketLocation() {
+  const [location, navigate] = useHashLocation();
+  const sectionHash = location === "/explore" || location === "/how-it-works";
+  return [sectionHash ? "/" : location, navigate] as [string, typeof navigate];
+}
+
 function Router() {
-  return <Switch>
+  return <WouterRouter hook={useDevMarketLocation}><Switch>
     <Route path="/" component={Home} />
     <Route path="/product/:slug" component={ProductDetails} />
     <Route path="/checkout/:slug" component={Checkout} />
@@ -18,7 +25,7 @@ function Router() {
     <Route path="/admin" component={AdminDashboard} />
     <Route path="/404" component={NotFound} />
     <Route component={NotFound} />
-  </Switch>;
+  </Switch></WouterRouter>;
 }
 
 export default function App() {
