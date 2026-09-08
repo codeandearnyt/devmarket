@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import AdminDashboard from "./pages/AdminDashboard";
 import BuyerDashboard from "./pages/BuyerDashboard";
 import Checkout, { ProductDetails } from "./pages/Checkout";
+import Developer from "./pages/Developer";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 
@@ -22,6 +23,7 @@ function Router() {
     <Route path="/product/:slug" component={ProductDetails} />
     <Route path="/checkout/:slug" component={Checkout} />
     <Route path="/dashboard" component={BuyerDashboard} />
+    <Route path="/developer" component={Developer} />
     <Route path="/admin" component={AdminDashboard} />
     <Route path="/404" component={NotFound} />
     <Route component={NotFound} />

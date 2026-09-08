@@ -6,7 +6,9 @@ DevMarket is a full-stack digital marketplace for production-ready source code, 
 
 This project runs on the managed WebDev full-stack runtime and uses the scaffold’s supported stack: **React 19 + Vite + TypeScript + Tailwind CSS** for the client, **Express + tRPC** for the server API, **Drizzle ORM** for the managed MySQL/TiDB database, Manus OAuth for the authenticated session, and the built-in S3-compatible storage helper for uploaded files. This is the deployable equivalent of the original Next.js + Express + Prisma brief while keeping the required secure payment and delivery behavior.
 
-The public experience is available at `/`. The buyer library is at `/dashboard`, and the protected admin command center is at `/admin`.
+The public experience is available at `/`. The buyer library is at `/dashboard`, the developer profile is at `/#/developer`, and the protected admin command center is at `/#/admin`.
+
+The developer profile introduces **Nitin Sharma**, a 16-year-old Computer Science Engineering student at Government Polytechnic Sergarh, Kaithal. It covers automation, AI and LLM work, AI-assisted web and app development, responsible AI principles, current learning goals, and a portrait served from managed storage.
 
 ## Visual performance
 
