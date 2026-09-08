@@ -1,11 +1,17 @@
-import { eq } from "drizzle-orm";
+import { and, asc, desc, eq, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import {
+  categories,
+  InsertUser,
+  orders,
+  paymentSettings,
+  products,
+  users,
+} from "../drizzle/schema";
+import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -19,74 +25,119 @@ export async function getDb() {
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
-  if (!user.openId) {
-    throw new Error("User openId is required for upsert");
-  }
-
+  if (!user.openId) throw new Error("User openId is required for upsert");
   const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
-    return;
+  if (!db) return;
+  const values: InsertUser = { openId: user.openId };
+  const updateSet: Record<string, unknown> = {};
+  (['name', 'email', 'loginMethod'] as const).forEach(field => {
+    if (user[field] !== undefined) {
+      values[field] = user[field] ?? null;
+      updateSet[field] = user[field] ?? null;
+    }
+  });
+  values.lastSignedIn = user.lastSignedIn ?? new Date();
+  updateSet.lastSignedIn = values.lastSignedIn;
+  if (user.role !== undefined) {
+    values.role = user.role;
+    updateSet.role = user.role;
+  } else if (user.openId === ENV.ownerOpenId) {
+    values.role = 'admin';
+    updateSet.role = 'admin';
   }
-
-  try {
-    const values: InsertUser = {
-      openId: user.openId,
-    };
-    const updateSet: Record<string, unknown> = {};
-
-    const textFields = ["name", "email", "loginMethod"] as const;
-    type TextField = (typeof textFields)[number];
-
-    const assignNullable = (field: TextField) => {
-      const value = user[field];
-      if (value === undefined) return;
-      const normalized = value ?? null;
-      values[field] = normalized;
-      updateSet[field] = normalized;
-    };
-
-    textFields.forEach(assignNullable);
-
-    if (user.lastSignedIn !== undefined) {
-      values.lastSignedIn = user.lastSignedIn;
-      updateSet.lastSignedIn = user.lastSignedIn;
-    }
-    if (user.role !== undefined) {
-      values.role = user.role;
-      updateSet.role = user.role;
-    } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
-    }
-
-    if (!values.lastSignedIn) {
-      values.lastSignedIn = new Date();
-    }
-
-    if (Object.keys(updateSet).length === 0) {
-      updateSet.lastSignedIn = new Date();
-    }
-
-    await db.insert(users).values(values).onDuplicateKeyUpdate({
-      set: updateSet,
-    });
-  } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
-  }
+  await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
 }
 
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
-  }
-
+  if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
-  return result.length > 0 ? result[0] : undefined;
+  return result[0];
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function listCategories() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(categories).orderBy(asc(categories.name));
+}
+
+export async function listProducts(filters?: { categoryId?: number; type?: 'SOURCE_CODE' | 'PROMPT' | 'PROJECT'; search?: string; sort?: 'newest' | 'price' | 'popular' }) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [eq(products.isPublished, true)];
+  if (filters?.categoryId) conditions.push(eq(products.categoryId, filters.categoryId));
+  if (filters?.type) conditions.push(eq(products.type, filters.type));
+  if (filters?.search) conditions.push(or(like(products.title, `%${filters.search}%`), like(products.shortDescription, `%${filters.search}%`))!);
+  const orderBy = filters?.sort === 'price'
+    ? asc(sql`coalesce(${products.discountPrice}, ${products.price})`)
+    : filters?.sort === 'popular'
+      ? desc(products.salesCount)
+      : desc(products.createdAt);
+  return db.select().from(products).where(and(...conditions)).orderBy(orderBy);
+}
+
+export async function listFeaturedProducts() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(products).where(and(eq(products.isPublished, true), eq(products.isFeatured, true))).orderBy(desc(products.salesCount)).limit(6);
+}
+
+export async function getProductBySlug(slug: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(products).where(and(eq(products.slug, slug), eq(products.isPublished, true))).limit(1);
+  return result[0];
+}
+
+export async function createOrder(data: typeof orders.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error('Database is not configured');
+  await db.insert(orders).values(data);
+  const result = await db.select().from(orders).where(eq(orders.orderNumber, data.orderNumber)).limit(1);
+  return result[0];
+}
+
+export async function listOrdersForUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({ order: orders, product: products }).from(orders).innerJoin(products, eq(orders.productId, products.id)).where(eq(orders.userId, userId)).orderBy(desc(orders.createdAt));
+}
+
+export async function listAdminOrders() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({ order: orders, product: products, buyer: users }).from(orders).innerJoin(products, eq(orders.productId, products.id)).innerJoin(users, eq(orders.userId, users.id)).orderBy(desc(orders.createdAt));
+}
+
+export async function getDashboardStats() {
+  const db = await getDb();
+  if (!db) return { totalSales: 0, revenue: 0, pendingApprovals: 0, totalProducts: 0 };
+  const [sales, pending, productCount] = await Promise.all([
+    db.select({ count: sql<number>`count(*)`, revenue: sql<number>`coalesce(sum(${orders.amount}), 0)` }).from(orders).where(or(eq(orders.status, 'PAID'), eq(orders.status, 'DELIVERED'))),
+    db.select({ count: sql<number>`count(*)` }).from(orders).where(and(eq(orders.paymentMethod, 'MANUAL_QR'), eq(orders.status, 'PENDING'))),
+    db.select({ count: sql<number>`count(*)` }).from(products),
+  ]);
+  return { totalSales: Number(sales[0]?.count ?? 0), revenue: Number(sales[0]?.revenue ?? 0), pendingApprovals: Number(pending[0]?.count ?? 0), totalProducts: Number(productCount[0]?.count ?? 0) };
+}
+
+export async function getPaymentSettings() {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(paymentSettings).limit(1);
+  return result[0];
+}
+
+export async function updateOrderStatus(id: number, status: 'PAID' | 'DELIVERED' | 'REJECTED', adminId: number, reason?: string) {
+  const db = await getDb();
+  if (!db) throw new Error('Database is not configured');
+  await db.update(orders).set({ status: status, adminReviewedBy: adminId, adminReviewedAt: new Date(), adminRejectionReason: reason ?? null, deliveredAt: status === 'DELIVERED' ? new Date() : null }).where(eq(orders.id, id));
+  const result = await db.select().from(orders).where(eq(orders.id, id)).limit(1);
+  return result[0];
+}
+
+export async function getOrderForUser(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select({ order: orders, product: products }).from(orders).innerJoin(products, eq(orders.productId, products.id)).where(and(eq(orders.id, id), eq(orders.userId, userId))).limit(1);
+  return result[0];
+}
