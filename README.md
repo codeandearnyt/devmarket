@@ -8,6 +8,10 @@ This project runs on the managed WebDev full-stack runtime and uses the scaffold
 
 The public experience is available at `/`. The buyer library is at `/dashboard`, and the protected admin command center is at `/admin`.
 
+## Visual performance
+
+The UI uses an aqua-led liquid-morphism system built from static gradients, rounded fluid shapes, opaque translucent surfaces, and transform-only drift animations. The hero no longer uses turbulence noise, blend-mode compositing, fixed background attachment, large-area backdrop blur, or a full-size image payload. Motion is limited to compositor-friendly `transform` and `opacity` changes, and reduced-motion preferences are respected. These choices are designed to keep normal interactions smooth at 60 FPS and take advantage of 120 Hz displays where the browser and device support it; no web page can guarantee a fixed frame rate on every device or under every network/CPU condition.
+
 ## Realtime updates
 
 The Express server exposes `GET /api/realtime` as a Server-Sent Events stream. It sends heartbeats to keep the connection alive and broadcasts catalog, order, payment, and checkout-settings changes. The storefront refreshes catalog data when products or payment settings change; buyer libraries refresh order and delivery state; and the admin queue refreshes approvals, dashboard stats, and catalog rows. Each client also has a 30-second fallback refresh and the browser automatically reconnects after a network interruption, so the app remains correct if a hosted instance rotates.

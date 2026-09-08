@@ -3,46 +3,65 @@
 @plugin "tailwindcss-animate";
 
 :root {
-  --background: #eef3ff;
+  --background: #eef8fa;
   --foreground: #172039;
-  --card: rgba(255,255,255,.52);
+  --card: rgba(255,255,255,.78);
   --card-foreground: #172039;
-  --muted: rgba(255,255,255,.32);
+  --muted: #e9f7f6;
   --muted-foreground: #53617d;
-  --border: rgba(255,255,255,.62);
-  --accent: #7658f5;
-  --accent-foreground: #fff;
-  --lime: #b8f58a;
+  --border: #d7e8eb;
+  --accent: #13b8b0;
+  --accent-foreground: #ffffff;
+  --lime: #c7f76d;
   --ink: #172039;
+  --violet: #7658f5;
   --radius: 1.25rem;
 }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 10% 10%, rgba(196,224,255,.95), transparent 30%), radial-gradient(circle at 90% 15%, rgba(231,202,255,.9), transparent 32%), radial-gradient(circle at 50% 100%, rgba(190,255,228,.78), transparent 36%), #eef3ff; color: var(--foreground); font-family: 'DM Sans', sans-serif; background-attachment: fixed; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: #eef8fa;
+  color: var(--foreground);
+  font-family: 'DM Sans', sans-serif;
+}
 button, a, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
-button:active { transform: scale(.98); }
+button:active { transform: scale(.985); }
 ::selection { background: var(--lime); color: var(--ink); }
 
 .font-display { font-family: 'Space Grotesk', sans-serif; }
 .font-mono { font-family: 'DM Mono', monospace; }
-.glass { background: rgba(255,255,255,.36); border: 1px solid rgba(255,255,255,.65); box-shadow: 0 18px 60px rgba(54,72,117,.12), inset 0 1px 0 rgba(255,255,255,.72); backdrop-filter: blur(24px) saturate(135%); -webkit-backdrop-filter: blur(24px) saturate(135%); }
-.glass-dark { background: rgba(23,32,57,.72); border: 1px solid rgba(255,255,255,.18); color: white; box-shadow: 0 18px 60px rgba(23,32,57,.22), inset 0 1px 0 rgba(255,255,255,.16); backdrop-filter: blur(28px) saturate(130%); -webkit-backdrop-filter: blur(28px) saturate(130%); }
-.glass-control { background: rgba(255,255,255,.32); border: 1px solid rgba(255,255,255,.68); box-shadow: inset 0 1px 0 rgba(255,255,255,.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
-.glass-surface, section, article, aside, header, footer { border-color: rgba(255,255,255,.58) !important; }
-.glass-surface, section.rounded-2xl, article.rounded-2xl, section.rounded-\[2rem\] { background: rgba(255,255,255,.38) !important; box-shadow: 0 16px 50px rgba(54,72,117,.1), inset 0 1px 0 rgba(255,255,255,.72); backdrop-filter: blur(22px) saturate(135%); -webkit-backdrop-filter: blur(22px) saturate(135%); }
-.admin-glass-nav { background: rgba(23,32,57,.72) !important; border-color: rgba(255,255,255,.16) !important; box-shadow: inset -1px 0 0 rgba(255,255,255,.12), 0 18px 60px rgba(23,32,57,.18); backdrop-filter: blur(28px) saturate(130%); -webkit-backdrop-filter: blur(28px) saturate(130%); }
-input, select, textarea { background: rgba(255,255,255,.28) !important; border-color: rgba(255,255,255,.68) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.68); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
-.hero-grid { background-image: linear-gradient(rgba(255,255,255,.22) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.22) 1px, transparent 1px) !important; }
-.noise { position: relative; }
-.noise::before { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .035; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E"); mix-blend-mode: multiply; }
-.hero-grid { background-image: linear-gradient(#dedbd255 1px, transparent 1px), linear-gradient(90deg, #dedbd255 1px, transparent 1px); background-size: 42px 42px; }
-.card-lift { transition: transform .18s cubic-bezier(.23,1,.32,1), box-shadow .18s cubic-bezier(.23,1,.32,1); }
-.card-lift:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(29,29,27,.10); }
-.btn { transition: transform .16s cubic-bezier(.23,1,.32,1), background .16s ease, color .16s ease, border-color .16s ease; }
-.btn:hover { transform: translateY(-1px); }
-.fade-up { animation: fadeUp .55s cubic-bezier(.23,1,.32,1) both; }
-@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Lightweight liquid-morphism surfaces: opaque enough to avoid backdrop-filter paint costs. */
+.glass { background: rgba(255,255,255,.78); border: 1px solid rgba(255,255,255,.95); box-shadow: 0 14px 32px rgba(39,104,122,.10), inset 0 1px 0 rgba(255,255,255,.95); }
+.glass-dark { background: #172039; border: 1px solid rgba(255,255,255,.16); color: white; box-shadow: 0 18px 38px rgba(23,32,57,.18); }
+.glass-control { background: rgba(255,255,255,.72); border: 1px solid rgba(255,255,255,.95); box-shadow: inset 0 1px 0 rgba(255,255,255,.95); }
+.glass-surface, section, article, aside, header, footer { border-color: rgba(255,255,255,.9) !important; }
+.glass-surface, section.rounded-2xl, article.rounded-2xl, section.rounded-\[2rem\] { background: rgba(255,255,255,.72) !important; box-shadow: 0 14px 32px rgba(39,104,122,.09), inset 0 1px 0 rgba(255,255,255,.95); }
+.admin-glass-nav { background: #172039 !important; border-color: rgba(255,255,255,.14) !important; box-shadow: 8px 0 28px rgba(23,32,57,.15); }
+input, select, textarea { background: rgba(255,255,255,.72) !important; border-color: rgba(255,255,255,.95) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.95); }
+
+/* Static, low-cost liquid shapes. No SVG turbulence, blend modes, or large-area blur. */
+.liquid-page { position: relative; isolation: isolate; overflow: hidden; }
+.liquid-page::before, .liquid-page::after { content: ''; position: fixed; z-index: -1; pointer-events: none; border-radius: 999px; transform: translate3d(0,0,0); }
+.liquid-page::before { width: 38vw; height: 38vw; min-width: 260px; min-height: 260px; top: -12vw; left: -10vw; background: #a8edf1; opacity: .66; animation: liquidDriftA 18s ease-in-out infinite alternate; }
+.liquid-page::after { width: 34vw; height: 34vw; min-width: 240px; min-height: 240px; right: -8vw; bottom: 8vh; background: #d9c9ff; opacity: .56; animation: liquidDriftB 22s ease-in-out infinite alternate; }
+.liquid-blob { position: absolute; pointer-events: none; border-radius: 58% 42% 66% 34% / 43% 56% 44% 57%; opacity: .7; transform: translate3d(0,0,0); }
+.liquid-blob-a { width: 180px; height: 130px; top: 8%; right: 7%; background: #c7f76d; }
+.liquid-blob-b { width: 220px; height: 160px; bottom: -4%; left: 8%; background: #bce9ff; }
+.hero-grid { background-image: linear-gradient(rgba(19,184,176,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(19,184,176,.08) 1px, transparent 1px) !important; background-size: 42px 42px; }
+
+.card-lift { transition: transform .16s cubic-bezier(.23,1,.32,1), box-shadow .16s cubic-bezier(.23,1,.32,1); }
+.card-lift:hover { transform: translate3d(0,-4px,0); box-shadow: 0 20px 40px rgba(39,104,122,.14); }
+.btn { transition: transform .14s cubic-bezier(.23,1,.32,1), background-color .14s ease, color .14s ease, border-color .14s ease; }
+.btn:hover { transform: translate3d(0,-1px,0); }
+.fade-up { animation: fadeUp .42s cubic-bezier(.23,1,.32,1) both; }
+@keyframes fadeUp { from { opacity: 0; transform: translate3d(0,8px,0); } to { opacity: 1; transform: translate3d(0,0,0); } }
+@keyframes liquidDriftA { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(5vw,4vh,0) scale(1.08); } }
+@keyframes liquidDriftB { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(-4vw,-3vh,0) scale(1.06); } }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+@media (max-width: 700px) { .liquid-page::before { width: 70vw; height: 70vw; } .liquid-page::after { width: 60vw; height: 60vw; } }
