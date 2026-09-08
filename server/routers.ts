@@ -48,7 +48,7 @@ const uploadDataUrl = async (dataUrl: string, prefix: string) => {
 
 function verifyRazorpaySignature(orderId: string, paymentId: string, signature: string) {
   const secret = process.env.RAZORPAY_KEY_SECRET;
-  if (!secret) return signature === "demo_signature";
+  if (!secret) return false;
   const expected = crypto.createHmac("sha256", secret).update(`${orderId}|${paymentId}`).digest("hex");
   return expected.length === signature.length && crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
 }
@@ -90,11 +90,12 @@ export const appRouter = router({
       if (!product) throw new Error("Product not found");
       const localOrderId = orderNumber();
       const amount = product.discountPrice ?? product.price;
-      const razorpay = process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET ? new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET }) : null;
-      const gatewayOrder = razorpay ? await razorpay.orders.create({ amount: amount * 100, currency: "INR", receipt: localOrderId }) : null;
-      const order = await createOrder({ orderNumber: localOrderId, userId: ctx.user.id, productId: product.id, amount, currency: "INR", paymentMethod: "RAZORPAY", status: "PENDING", razorpayOrderId: gatewayOrder?.id ?? `demo_rzp_${localOrderId}` });
+      if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) throw new Error("Razorpay is not configured");
+      const razorpay = new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET });
+      const gatewayOrder = await razorpay.orders.create({ amount: amount * 100, currency: "INR", receipt: localOrderId });
+      const order = await createOrder({ orderNumber: localOrderId, userId: ctx.user.id, productId: product.id, amount, currency: "INR", paymentMethod: "RAZORPAY", status: "PENDING", razorpayOrderId: gatewayOrder.id });
       publishRealtime({ type: "order.updated", scope: "buyer", userId: ctx.user.id, data: { orderId: order?.id, status: "PENDING", paymentMethod: "RAZORPAY" } });
-      return { order, checkout: { keyId: process.env.RAZORPAY_KEY_ID ?? "demo_key", amount: amount * 100, currency: "INR", name: "DevMarket", description: product.title } };
+      return { order, checkout: { keyId: process.env.RAZORPAY_KEY_ID, amount: amount * 100, currency: "INR", name: "DevMarket", description: product.title } };
     }),
     verifyRazorpay: protectedProcedure.input(z.object({ orderId: z.number().int().positive(), razorpayOrderId: z.string(), razorpayPaymentId: z.string(), razorpaySignature: z.string() })).mutation(async ({ ctx, input }) => {
       const owned = await getOrderForUser(input.orderId, ctx.user.id);

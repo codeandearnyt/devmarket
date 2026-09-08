@@ -1,5 +1,7 @@
 import { ArrowLeft, ArrowUpRight, Bot, Code2, Globe2, Layers3, Mail, Sparkles, Workflow } from "lucide-react";
 import { Link } from "wouter";
+import ScrollDepthBackground from "@/components/ScrollDepthBackground";
+import { useEffect } from "react";
 
 const skills = [
   { icon: <Workflow size={20} />, title: "Automated works", copy: "Designing repeatable workflows that connect tools, APIs, agents, and people so useful work keeps moving with less manual effort." },
@@ -16,16 +18,17 @@ const principles = [
 ];
 
 export default function Developer() {
-  return <div className="liquid-page min-h-screen overflow-hidden bg-[#eef8fa] text-[#172039]">
-    <header className="relative z-10 border-b border-white/80 bg-white/65">
-      <div className="mx-auto flex max-w-[1280px] items-center justify-between px-5 py-5 lg:px-8">
+  useEffect(() => { document.title = "Nitin Sharma — Developer Profile | DevMarket"; }, []);
+  return <div className="liquid-page min-h-screen overflow-hidden bg-[#eef8fa] text-[#172039]"><ScrollDepthBackground />
+    <header className="site-header">
+      <div className="site-nav-pill mx-auto flex max-w-[1080px] items-center justify-between px-4 py-3 lg:px-5">
         <Link href="/" className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#172039] text-[#c7f76d]"><Code2 size={18} /></span><span className="font-display text-xl font-bold tracking-[-.05em]">dev<span className="text-[#13b8b0]">market</span></span></Link>
         <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-[#53617d] transition hover:text-[#13b8b0]"><ArrowLeft size={15} /> Back to marketplace</Link>
       </div>
     </header>
 
     <main>
-      <section className="relative mx-auto max-w-[1280px] px-5 pb-20 pt-14 lg:px-8 lg:pb-28 lg:pt-20">
+      <section className="relative mx-auto max-w-[1280px] px-5 pb-20 pt-28 lg:px-8 lg:pb-28 lg:pt-36">
         <div className="grid items-center gap-12 lg:grid-cols-[.9fr_1.1fr]">
           <div className="order-2 lg:order-1">
             <p className="font-mono text-[11px] uppercase tracking-[.22em] text-[#13b8b0]">Developer profile / 001</p>

@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /#/admin
+Disallow: /#/dashboard
+Sitemap: https://devmarket.manus.space/sitemap.xml

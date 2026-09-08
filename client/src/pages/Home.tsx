@@ -1,17 +1,12 @@
-import { ArrowRight, Check, Code2, FolderOpen, Menu, Search, Sparkles, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowRight, Check, Code2, FolderOpen, Search, Sparkles, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { useRealtime } from "@/hooks/useRealtime";
+import ScrollDepthBackground from "@/components/ScrollDepthBackground";
 
-const FALLBACK_PRODUCTS = [
-  { id: 1, title: "SaaS Starter Kit", slug: "saas-starter-kit", type: "PROJECT", shortDescription: "Ship your next subscription product with a polished auth and billing foundation.", description: "A full-stack SaaS foundation designed for small teams. Includes auth flows, billing-ready account pages, onboarding, and a clean admin surface.", price: 2499, discountPrice: 1799, thumbnailUrl: "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=900&q=85", techStack: ["React", "Node.js", "Postgres"], salesCount: 42 },
-  { id: 2, title: "PromptOps Playbook", slug: "promptops-playbook", type: "PROMPT", shortDescription: "A practical library of prompts for research, writing, and product workflows.", description: "A deeply organized prompt library with reusable variables, evaluation checklists, and workflows for teams that want consistent AI output.", price: 799, discountPrice: 599, thumbnailUrl: "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=900&q=85", techStack: ["GPT-4", "Claude", "Notion"], salesCount: 31 },
-  { id: 3, title: "Command Palette UI", slug: "command-palette-ui", type: "SOURCE_CODE", shortDescription: "A keyboard-first command menu with smooth motion and accessible interactions.", description: "Drop-in command palette components with fuzzy search, keyboard navigation, shortcuts, themes, and thoughtful empty states.", price: 1299, discountPrice: null, thumbnailUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=900&q=85", techStack: ["TypeScript", "Tailwind", "Radix UI"], salesCount: 18 },
-];
-
-export type ProductCardData = typeof FALLBACK_PRODUCTS[number] & { categoryId?: number; fileUrl?: string; isFeatured?: boolean };
+export type ProductCardData = { id: number; title: string; slug: string; type: string; shortDescription: string; description: string; price: number; discountPrice: number | null; thumbnailUrl: string; techStack?: string[]; salesCount: number; categoryId?: number; fileUrl?: string; isFeatured?: boolean };
 
 export function money(value: number) { return `₹${value.toLocaleString("en-IN")}`; }
 export function typeLabel(type: string) { return type === "SOURCE_CODE" ? "Source code" : type === "PROMPT" ? "AI prompt" : "Full project"; }
@@ -39,14 +34,21 @@ export function ProductCard({ product, index = 0 }: { product: ProductCardData; 
 function Header({ live = false }: { live?: boolean }) {
   const { user, isAuthenticated, logout } = useAuth();
   const [open, setOpen] = useState(false);
-  return <header className="relative z-20 border-b border-[#d7e8eb] bg-white/70">
-    <div className="mx-auto flex max-w-[1280px] items-center justify-between px-5 py-5 lg:px-8">
+  const [hidden, setHidden] = useState(false);
+  const lastScroll = useRef(0);
+  useEffect(() => {
+    const onScroll = () => { const current = window.scrollY; setHidden(current > 80 && current > lastScroll.current); lastScroll.current = current; };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return <header className={`site-header ${hidden ? "site-header-hidden" : ""}`}>
+    <div className="site-nav-pill mx-auto flex max-w-[1080px] items-center justify-between px-4 py-3 lg:px-5">
       <Link href="/"><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#172039] text-[#c7f76d]"><Code2 size={18} /></div><span className="font-display text-xl font-bold tracking-[-.05em]">dev<span className="text-[#13b8b0]">market</span></span></div></Link>
       <nav className="hidden items-center gap-8 text-sm font-medium text-[#53617d] md:flex"><a href="#explore" className="transition hover:text-[#172039]">Explore</a><a href="#how-it-works" className="transition hover:text-[#172039]">How it works</a><Link href="/dashboard" className="transition hover:text-[#172039]">My library</Link><span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.14em] text-[#71809f]"><span className={`h-1.5 w-1.5 rounded-full ${live ? "bg-[#527f1e]" : "bg-[#b9d6db]"}`} />{live ? "Live" : "Syncing"}</span></nav>
       <div className="hidden items-center gap-3 md:flex">{isAuthenticated ? <><span className="text-sm text-[#53617d]">Hi, {user?.name?.split(" ")[0] ?? "builder"}</span><button onClick={() => logout()} className="btn rounded-full border border-[#d7e8eb] px-4 py-2 text-sm font-semibold">Sign out</button></> : <><button onClick={() => window.location.href = "/api/oauth/login"} className="btn rounded-full border border-[#d7e8eb] px-4 py-2 text-sm font-semibold">Sign in</button><button onClick={() => window.location.href = "/api/oauth/login"} className="btn rounded-full bg-[#172039] px-4 py-2 text-sm font-semibold text-white hover:bg-[#13b8b0]">Start building <ArrowRight className="ml-1 inline" size={15} /></button></>}</div>
-      <button aria-label="Toggle menu" className="rounded-lg p-2 md:hidden" onClick={() => setOpen(v => !v)}>{open ? <X /> : <Menu />}</button>
+      <button aria-label="Toggle menu" className="rounded-xl p-2 md:hidden" onClick={() => setOpen(v => !v)}>{open ? <X /> : <span className="flex w-5 flex-col gap-1.5"><span className="h-0.5 w-5 rounded-full bg-[#172039]" /><span className="h-0.5 w-5 rounded-full bg-[#172039]" /></span>}</button>
     </div>
-    {open && <div className="border-t border-[#d7e8eb] px-5 py-5 md:hidden"><div className="flex flex-col gap-4 text-sm font-medium"><a href="#explore" onClick={() => setOpen(false)}>Explore</a><a href="#how-it-works" onClick={() => setOpen(false)}>How it works</a><Link href="/dashboard">My library</Link><button className="w-fit rounded-full bg-[#172039] px-4 py-2 text-white" onClick={() => window.location.href = "/api/oauth/login"}>Sign in</button></div></div>}
+    {open && <div className="site-mobile-menu"><div className="flex flex-col gap-4 text-sm font-medium"><a href="#explore" onClick={() => setOpen(false)}>Explore</a><a href="#how-it-works" onClick={() => setOpen(false)}>How it works</a><Link href="/dashboard">My library</Link><Link href="/developer">Developer</Link><button className="w-fit rounded-full bg-[#172039] px-4 py-2 text-white" onClick={() => window.location.href = "/api/oauth/login"}>Sign in</button></div></div>}
   </header>;
 }
 
@@ -57,11 +59,11 @@ export default function Home() {
   const featuredQuery = trpc.catalog.featured.useQuery();
   const productsQuery = trpc.catalog.products.useQuery({ sort: "popular" });
   const categoriesQuery = trpc.catalog.categories.useQuery();
-  const allProducts = ((productsQuery.data?.length ? productsQuery.data : FALLBACK_PRODUCTS) as ProductCardData[]);
-  const featured = ((featuredQuery.data?.length ? featuredQuery.data : allProducts.slice(0, 3)) as ProductCardData[]);
+  const allProducts = (productsQuery.data ?? []) as ProductCardData[];
+  const featured = (featuredQuery.data ?? []) as ProductCardData[];
   const filtered = useMemo(() => allProducts.filter(p => (activeType === "ALL" || p.type === activeType) && `${p.title} ${p.shortDescription}`.toLowerCase().includes(search.toLowerCase())), [allProducts, activeType, search]);
-  const categories = categoriesQuery.data?.length ? categoriesQuery.data : [{ id: 1, name: "Source Code" }, { id: 2, name: "AI Prompts" }, { id: 3, name: "Full Projects" }];
-  return <div className="liquid-page min-h-screen overflow-hidden bg-[#eef8fa] text-[#172039]">
+  const categories = categoriesQuery.data ?? [];
+  return <div className="liquid-page min-h-screen overflow-hidden bg-[#eef8fa] text-[#172039]"><ScrollDepthBackground />
     <Header live={live} />
     <main>
       <section className="hero-grid relative border-b border-[#d7e8eb]">
@@ -83,6 +85,6 @@ export default function Home() {
 
       <section className="mx-5 mb-20 overflow-hidden rounded-[2rem] bg-[#172039] text-white lg:mx-auto lg:max-w-[1232px]"><div className="grid items-center gap-8 px-7 py-12 lg:grid-cols-[1fr_auto] lg:px-14 lg:py-16"><div><p className="font-mono text-[11px] uppercase tracking-[.2em] text-[#c7f76d]">For the next launch</p><h2 className="mt-4 max-w-xl font-display text-4xl font-semibold leading-[.95] tracking-[-.06em] md:text-6xl">Less boilerplate.<br />More momentum.</h2></div><Link href="/dashboard" className="btn inline-flex items-center justify-center rounded-full bg-[#c7f76d] px-6 py-3.5 text-sm font-semibold text-[#172039] hover:bg-white">Open my library <ArrowRight className="ml-2" size={16} /></Link></div></section>
     </main>
-    <footer className="border-t border-[#d7e8eb] px-5 py-8 lg:px-8"><div className="mx-auto flex max-w-[1280px] flex-col justify-between gap-4 text-sm text-[#53617d] md:flex-row"><span className="font-display font-semibold text-[#172039]">dev<span className="text-[#13b8b0]">market</span></span><Link href="/developer" className="transition hover:text-[#13b8b0]">Meet the developer · Nitin Sharma</Link><span className="font-mono text-[10px] uppercase tracking-[.14em]">© 2026 DevMarket Labs</span></div></footer>
+    <footer className="border-t border-[#d7e8eb] px-5 py-8 lg:px-8"><div className="mx-auto flex max-w-[1280px] flex-col justify-between gap-4 text-sm text-[#53617d] md:flex-row"><span className="font-display font-semibold text-[#172039]">dev<span className="text-[#13b8b0]">market</span></span><div className="flex flex-wrap gap-4"><Link href="/developer" className="transition hover:text-[#13b8b0]">Developer</Link><Link href="/about" className="transition hover:text-[#13b8b0]">About</Link><Link href="/privacy" className="transition hover:text-[#13b8b0]">Privacy</Link><Link href="/terms" className="transition hover:text-[#13b8b0]">Terms</Link><Link href="/contact" className="transition hover:text-[#13b8b0]">Contact</Link></div><span className="font-mono text-[10px] uppercase tracking-[.14em]">© 2026 DevMarket Labs</span></div></footer>
   </div>;
 }

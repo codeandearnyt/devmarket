@@ -25,7 +25,6 @@ This design keeps realtime state in the database rather than process memory. It 
 ```bash
 pnpm install
 pnpm db:push
-pnpm seed
 pnpm dev
 ```
 
@@ -46,7 +45,7 @@ SMTP_USER=
 SMTP_PASS=
 ```
 
-`RAZORPAY_KEY_SECRET` is never returned to the client. The current preview supports a safe demo Razorpay path when no secret is configured; once a secret is present, the server validates the HMAC-SHA256 signature for `razorpayOrderId|razorpayPaymentId` before changing an order to `DELIVERED`.
+`RAZORPAY_KEY_SECRET` is never returned to the client. Razorpay checkout is unavailable until both live credentials are configured; once enabled, the server validates the HMAC-SHA256 signature for `razorpayOrderId|razorpayPaymentId` before changing an order to `DELIVERED`.
 
 ## Data model
 
@@ -59,7 +58,7 @@ pnpm drizzle-kit generate
 pnpm db:push
 ```
 
-The seed script adds three categories, three sample products, one admin record (`admin@devmarket.local`), and default UPI display settings:
+The former demo fixture data has been removed from the database. `server/seed.ts` is intentionally inert and does not insert products, users, orders, categories, or payment settings. Configure real catalog and payment records through the protected admin workflow.
 
 ```bash
 pnpm seed
