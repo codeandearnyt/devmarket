@@ -8,6 +8,12 @@ This project runs on the managed WebDev full-stack runtime and uses the scaffold
 
 The public experience is available at `/`. The buyer library is at `/dashboard`, and the protected admin command center is at `/admin`.
 
+## Realtime updates
+
+The Express server exposes `GET /api/realtime` as a Server-Sent Events stream. It sends heartbeats to keep the connection alive and broadcasts catalog, order, payment, and checkout-settings changes. The storefront refreshes catalog data when products or payment settings change; buyer libraries refresh order and delivery state; and the admin queue refreshes approvals, dashboard stats, and catalog rows. Each client also has a 30-second fallback refresh and the browser automatically reconnects after a network interruption, so the app remains correct if a hosted instance rotates.
+
+This design keeps realtime state in the database rather than process memory. It works with the managed autoscaling runtime for ordinary marketplace traffic; an upgrade to reserved hosting is only needed if you require a single always-on in-memory connection hub at very high concurrency.
+
 ## Local setup
 
 ```bash

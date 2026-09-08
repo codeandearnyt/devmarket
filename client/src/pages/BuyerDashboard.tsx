@@ -2,12 +2,14 @@ import { ArrowDownToLine, ArrowLeft, Clock3, ExternalLink, FileCheck2, Library, 
 import { Link } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import { useRealtime } from "@/hooks/useRealtime";
 import { money, typeLabel } from "./Home";
 
 const statusStyles: Record<string, string> = { PENDING: "bg-[#fff4c6] text-[#8a6500]", PAID: "bg-[#e7f5c8] text-[#427018]", DELIVERED: "bg-[#d8ef62] text-[#1d1d1b]", REJECTED: "bg-[#ffe0d7] text-[#a33e23]", FAILED: "bg-[#ffe0d7] text-[#a33e23]" };
 const statusLabel: Record<string, string> = { PENDING: "Pending review", PAID: "Paid", DELIVERED: "Delivered", REJECTED: "Rejected", FAILED: "Payment failed" };
 
 export default function BuyerDashboard() {
+  useRealtime("buyer");
   const { user, isAuthenticated } = useAuth();
   const orders = trpc.orders.myOrders.useQuery(undefined, { enabled: isAuthenticated });
   const download = trpc.orders.download.useMutation();

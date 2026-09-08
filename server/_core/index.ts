@@ -8,6 +8,7 @@ import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { realtimeClientCount, subscribeRealtime } from "../realtime";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -36,6 +37,17 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  app.get("/api/realtime", (req, res) => {
+    res.status(200);
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
+    const cleanup = subscribeRealtime(res);
+    req.on("close", cleanup);
+    res.write(`event: system.notice\ndata: ${JSON.stringify({ type: "system.notice", data: { connectedClients: realtimeClientCount() } })}\n\n`);
+  });
   // tRPC API
   app.use(
     "/api/trpc",

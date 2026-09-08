@@ -23,6 +23,7 @@ import {
 } from "./db";
 import { sendDeliveryEmail } from "./email";
 import { storagePut } from "./storage";
+import { publishRealtime } from "./realtime";
 
 const productInput = z.object({
   title: z.string().min(3).max(220), slug: z.string().min(3).max(240), description: z.string().min(10), shortDescription: z.string().min(5).max(320),
@@ -78,7 +79,9 @@ export const appRouter = router({
       if (!product) throw new Error("Product not found");
       const amount = product.discountPrice ?? product.price;
       const proofUrl = await uploadDataUrl(input.screenshotUrl, `devmarket/payment-proof/${ctx.user.id}`);
-      return createOrder({ orderNumber: orderNumber(), userId: ctx.user.id, productId: product.id, amount, currency: "INR", paymentMethod: "MANUAL_QR", status: "PENDING", qrScreenshotUrl: proofUrl, manualPaymentNote: input.manualPaymentNote });
+      const order = await createOrder({ orderNumber: orderNumber(), userId: ctx.user.id, productId: product.id, amount, currency: "INR", paymentMethod: "MANUAL_QR", status: "PENDING", qrScreenshotUrl: proofUrl, manualPaymentNote: input.manualPaymentNote });
+      publishRealtime({ type: "order.updated", scope: "admin", data: { orderId: order?.id, status: "PENDING", paymentMethod: "MANUAL_QR" } });
+      return order;
     }),
     createRazorpay: protectedProcedure.input(z.object({ productId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -90,6 +93,7 @@ export const appRouter = router({
       const razorpay = process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET ? new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET }) : null;
       const gatewayOrder = razorpay ? await razorpay.orders.create({ amount: amount * 100, currency: "INR", receipt: localOrderId }) : null;
       const order = await createOrder({ orderNumber: localOrderId, userId: ctx.user.id, productId: product.id, amount, currency: "INR", paymentMethod: "RAZORPAY", status: "PENDING", razorpayOrderId: gatewayOrder?.id ?? `demo_rzp_${localOrderId}` });
+      publishRealtime({ type: "order.updated", scope: "buyer", userId: ctx.user.id, data: { orderId: order?.id, status: "PENDING", paymentMethod: "RAZORPAY" } });
       return { order, checkout: { keyId: process.env.RAZORPAY_KEY_ID ?? "demo_key", amount: amount * 100, currency: "INR", name: "DevMarket", description: product.title } };
     }),
     verifyRazorpay: protectedProcedure.input(z.object({ orderId: z.number().int().positive(), razorpayOrderId: z.string(), razorpayPaymentId: z.string(), razorpaySignature: z.string() })).mutation(async ({ ctx, input }) => {
@@ -106,6 +110,8 @@ export const appRouter = router({
       await db.update(orders).set({ status: "DELIVERED", razorpayPaymentId: input.razorpayPaymentId, razorpaySignature: input.razorpaySignature, deliveredAt: new Date() }).where(eq(orders.id, input.orderId));
       await db.update(products).set({ salesCount: (owned.product.salesCount ?? 0) + 1 }).where(eq(products.id, owned.product.id));
       await sendDeliveryEmail(ctx.user.email, owned.product.title, owned.product.fileUrl);
+      publishRealtime({ type: "payment.updated", scope: "buyer", userId: ctx.user.id, data: { orderId: input.orderId, status: "DELIVERED" } });
+      publishRealtime({ type: "catalog.updated", scope: "public", data: { productId: owned.product.id } });
       return { success: true, status: "DELIVERED" as const };
     }),
     download: protectedProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
@@ -122,9 +128,16 @@ export const appRouter = router({
       const rows = await listAdminOrders();
       const row = rows.find(item => item.order.id === input.id);
       if (row) await sendDeliveryEmail(row.buyer.email, row.product.title, row.product.fileUrl);
+      publishRealtime({ type: "payment.updated", scope: "buyer", userId: row?.order.userId, data: { orderId: input.id, status: "DELIVERED" } });
+      publishRealtime({ type: "order.updated", scope: "admin", data: { orderId: input.id, status: "DELIVERED" } });
       return updated;
     }),
-    rejectOrder: adminProcedure.input(z.object({ id: z.number().int().positive(), reason: z.string().min(4).max(500) })).mutation(async ({ ctx, input }) => updateOrderStatus(input.id, "REJECTED", ctx.user.id, input.reason)),
+    rejectOrder: adminProcedure.input(z.object({ id: z.number().int().positive(), reason: z.string().min(4).max(500) })).mutation(async ({ ctx, input }) => {
+      const updated = await updateOrderStatus(input.id, "REJECTED", ctx.user.id, input.reason);
+      publishRealtime({ type: "payment.updated", scope: "buyer", userId: updated?.userId, data: { orderId: input.id, status: "REJECTED" } });
+      publishRealtime({ type: "order.updated", scope: "admin", data: { orderId: input.id, status: "REJECTED" } });
+      return updated;
+    }),
     products: adminProcedure.query(async () => {
       const db = await getDb();
       if (!db) return [];
@@ -134,6 +147,7 @@ export const appRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database is not configured");
       await db.insert(products).values({ ...input, discountPrice: input.discountPrice ?? null, previewImages: input.previewImages ?? [], techStack: input.techStack ?? [], isPublished: input.isPublished ?? true, isFeatured: input.isFeatured ?? false });
+      publishRealtime({ type: "catalog.updated", scope: "public", data: { action: "created" } });
       return { success: true };
     }),
     updateProduct: adminProcedure.input(productInput.extend({ id: z.number().int().positive() })).mutation(async ({ input }) => {
@@ -141,12 +155,14 @@ export const appRouter = router({
       if (!db) throw new Error("Database is not configured");
       const { id, ...values } = input;
       await db.update(products).set({ ...values, discountPrice: values.discountPrice ?? null, previewImages: values.previewImages ?? [], techStack: values.techStack ?? [] }).where(eq(products.id, id));
+      publishRealtime({ type: "catalog.updated", scope: "public", data: { action: "updated", productId: id } });
       return { success: true };
     }),
     deleteProduct: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database is not configured");
       await db.delete(products).where(eq(products.id, input.id));
+      publishRealtime({ type: "catalog.updated", scope: "public", data: { action: "deleted", productId: input.id } });
       return { success: true };
     }),
     categories: adminProcedure.query(() => listCategories()),
@@ -163,6 +179,7 @@ export const appRouter = router({
       const existing = await getPaymentSettings();
       if (existing) await db.update(paymentSettings).set(input).where(eq(paymentSettings.id, existing.id));
       else await db.insert(paymentSettings).values(input);
+      publishRealtime({ type: "catalog.updated", scope: "public", data: { action: "payment-settings-updated" } });
       return { success: true };
     }),
     users: adminProcedure.query(async () => {

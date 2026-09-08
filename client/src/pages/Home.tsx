@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import { useRealtime } from "@/hooks/useRealtime";
 
 const FALLBACK_PRODUCTS = [
   { id: 1, title: "SaaS Starter Kit", slug: "saas-starter-kit", type: "PROJECT", shortDescription: "Ship your next subscription product with a polished auth and billing foundation.", description: "A full-stack SaaS foundation designed for small teams. Includes auth flows, billing-ready account pages, onboarding, and a clean admin surface.", price: 2499, discountPrice: 1799, thumbnailUrl: "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=900&q=85", techStack: ["React", "Node.js", "Postgres"], salesCount: 42 },
@@ -35,13 +36,13 @@ export function ProductCard({ product, index = 0 }: { product: ProductCardData; 
   );
 }
 
-function Header() {
+function Header({ live = false }: { live?: boolean }) {
   const { user, isAuthenticated, logout } = useAuth();
   const [open, setOpen] = useState(false);
   return <header className="relative z-20 border-b border-[#dedbd2] bg-[#f6f4ef]/95 backdrop-blur">
     <div className="mx-auto flex max-w-[1280px] items-center justify-between px-5 py-5 lg:px-8">
       <Link href="/"><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1d1d1b] text-[#d8ef62]"><Code2 size={18} /></div><span className="font-display text-xl font-bold tracking-[-.05em]">dev<span className="text-[#df5c3b]">market</span></span></div></Link>
-      <nav className="hidden items-center gap-8 text-sm font-medium text-[#6f706b] md:flex"><a href="#explore" className="transition hover:text-[#1d1d1b]">Explore</a><a href="#how-it-works" className="transition hover:text-[#1d1d1b]">How it works</a><Link href="/dashboard" className="transition hover:text-[#1d1d1b]">My library</Link>{user?.role === "admin" && <Link href="/admin" className="transition hover:text-[#1d1d1b]">Admin</Link>}</nav>
+      <nav className="hidden items-center gap-8 text-sm font-medium text-[#6f706b] md:flex"><a href="#explore" className="transition hover:text-[#1d1d1b]">Explore</a><a href="#how-it-works" className="transition hover:text-[#1d1d1b]">How it works</a><Link href="/dashboard" className="transition hover:text-[#1d1d1b]">My library</Link>{user?.role === "admin" && <Link href="/admin" className="transition hover:text-[#1d1d1b]">Admin</Link>}<span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.14em] text-[#96958f]"><span className={`h-1.5 w-1.5 rounded-full ${live ? "bg-[#527f1e]" : "bg-[#c8c5bc]"}`} />{live ? "Live" : "Syncing"}</span></nav>
       <div className="hidden items-center gap-3 md:flex">{isAuthenticated ? <><span className="text-sm text-[#6f706b]">Hi, {user?.name?.split(" ")[0] ?? "builder"}</span><button onClick={() => logout()} className="btn rounded-full border border-[#dedbd2] px-4 py-2 text-sm font-semibold">Sign out</button></> : <><button onClick={() => window.location.href = "/api/oauth/login"} className="btn rounded-full border border-[#dedbd2] px-4 py-2 text-sm font-semibold">Sign in</button><button onClick={() => window.location.href = "/api/oauth/login"} className="btn rounded-full bg-[#1d1d1b] px-4 py-2 text-sm font-semibold text-white hover:bg-[#df5c3b]">Start building <ArrowRight className="ml-1 inline" size={15} /></button></>}</div>
       <button aria-label="Toggle menu" className="rounded-lg p-2 md:hidden" onClick={() => setOpen(v => !v)}>{open ? <X /> : <Menu />}</button>
     </div>
@@ -50,6 +51,7 @@ function Header() {
 }
 
 export default function Home() {
+  const live = useRealtime("storefront");
   const [activeType, setActiveType] = useState<string>("ALL");
   const [search, setSearch] = useState("");
   const featuredQuery = trpc.catalog.featured.useQuery();
@@ -60,7 +62,7 @@ export default function Home() {
   const filtered = useMemo(() => allProducts.filter(p => (activeType === "ALL" || p.type === activeType) && `${p.title} ${p.shortDescription}`.toLowerCase().includes(search.toLowerCase())), [allProducts, activeType, search]);
   const categories = categoriesQuery.data?.length ? categoriesQuery.data : [{ id: 1, name: "Source Code" }, { id: 2, name: "AI Prompts" }, { id: 3, name: "Full Projects" }];
   return <div className="min-h-screen overflow-hidden bg-[#f6f4ef] text-[#1d1d1b]">
-    <Header />
+    <Header live={live} />
     <main>
       <section className="hero-grid noise relative border-b border-[#dedbd2]">
         <div className="mx-auto grid max-w-[1280px] items-center gap-12 px-5 py-16 lg:grid-cols-[1.1fr_.9fr] lg:px-8 lg:py-24">
