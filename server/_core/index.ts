@@ -9,6 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { realtimeClientCount, subscribeRealtime } from "../realtime";
+import { listPublishedBlogPosts } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -37,6 +38,14 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  app.get("/sitemap.xml", async (_req, res) => {
+    const baseUrl = (process.env.PUBLIC_SITE_URL || "https://devmarket.manus.space").replace(/\/$/, "");
+    const posts = await listPublishedBlogPosts();
+    const urls = ["/", "/blog", "/developer", "/about", "/privacy", "/terms", "/contact", ...posts.map(post => `/blog/${post.slug}`)];
+    const escapeXml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+    const body = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.map(url => `<url><loc>${escapeXml(`${baseUrl}${url}`)}</loc></url>`).join("")}</urlset>`;
+    res.type("application/xml").send(body);
+  });
   app.get("/api/realtime", (req, res) => {
     res.status(200);
     res.setHeader("Content-Type", "text/event-stream");

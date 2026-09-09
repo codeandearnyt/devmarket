@@ -136,6 +136,20 @@ export async function listPublishedBlogPosts() {
   return db.select().from(blogPosts).where(eq(blogPosts.status, "PUBLISHED")).orderBy(desc(blogPosts.publishedAt), desc(blogPosts.createdAt));
 }
 
+export async function listPublishedBlogPostsPage(page = 1, pageSize = 6) {
+  const db = await getDb();
+  const safePage = Math.max(1, page);
+  const safePageSize = Math.min(24, Math.max(1, pageSize));
+  if (!db) return { posts: [], total: 0, page: safePage, pageSize: safePageSize, totalPages: 0 };
+  const where = eq(blogPosts.status, "PUBLISHED");
+  const [posts, countRows] = await Promise.all([
+    db.select().from(blogPosts).where(where).orderBy(desc(blogPosts.publishedAt), desc(blogPosts.createdAt)).limit(safePageSize).offset((safePage - 1) * safePageSize),
+    db.select({ count: sql<number>`count(*)` }).from(blogPosts).where(where),
+  ]);
+  const total = Number(countRows[0]?.count ?? 0);
+  return { posts, total, page: safePage, pageSize: safePageSize, totalPages: Math.ceil(total / safePageSize) };
+}
+
 export async function getPublishedBlogPostBySlug(slug: string) {
   const db = await getDb();
   if (!db) return undefined;

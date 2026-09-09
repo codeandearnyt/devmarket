@@ -24,6 +24,7 @@ import {
   listOrdersForUser,
   listProducts,
   listPublishedBlogPosts,
+  listPublishedBlogPostsPage,
   updateBlogPost,
   updateOrderStatus,
 } from "./db";
@@ -83,7 +84,7 @@ export const appRouter = router({
     settings: publicProcedure.query(() => getPaymentSettings()),
   }),
   blog: router({
-    list: publicProcedure.query(() => listPublishedBlogPosts()),
+    list: publicProcedure.input(z.object({ page: z.number().int().positive().optional(), pageSize: z.number().int().positive().max(24).optional() }).optional()).query(({ input }) => listPublishedBlogPostsPage(input?.page ?? 1, input?.pageSize ?? 6)),
     bySlug: publicProcedure.input(z.object({ slug: z.string() })).query(({ input }) => getPublishedBlogPostBySlug(input.slug)),
   }),
   orders: router({
@@ -216,6 +217,7 @@ export const appRouter = router({
       publishRealtime({ type: "blog.updated", scope: "public", data: { action: "deleted", id: input.id } });
       return { success: true } as const;
     }),
+    uploadBlogCover: adminProcedure.input(z.object({ dataUrl: z.string().regex(/^data:image\//) })).mutation(async ({ ctx, input }) => ({ url: await uploadDataUrl(input.dataUrl, `devmarket/blog-cover/${ctx.user.id}`) })),
     users: adminProcedure.query(async () => {
       const db = await getDb();
       if (!db) return [];

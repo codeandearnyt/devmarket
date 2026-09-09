@@ -12,17 +12,16 @@
 - [x] Add the interactive AI and web development portfolio section to Nitin Sharma’s developer page.
 - [x] Preserve the centered rounded navigation pill, scroll hide/show behavior, and two-line mobile menu trigger.
 - [x] Connect blog changes to realtime public cache invalidation.
+- [x] Add paginated public Journal navigation and a live server-generated sitemap.
+- [x] Add managed storage uploads for blog cover images.
+- [x] Add local draft autosave and Markdown preview in the admin editor.
+- [x] Add lightweight analytics events for catalog filters and article views.
 
 ## Validation
 
 - [x] TypeScript check passes.
-- [x] Vitest suite passes.
+- [x] Vitest suite passes with 7 tests across 4 files.
 - [x] Production build passes.
+- [x] Dynamic `/sitemap.xml` returns the Journal index and all published starter articles.
 - [x] Desktop route screenshots reviewed for `/`, `/blog`, an article, `/developer`, and `/admin`.
-
-## Follow-up ideas
-
-- [ ] Add article cover uploads through managed storage instead of URL-only covers.
-- [ ] Add article preview and autosave drafts in the admin editor.
-- [ ] Add analytics for product filters and article engagement.
-- [ ] Add pagination and sitemap generation once the editorial library grows.
+- [x] Final project files and build artifacts verified before checkpointing.

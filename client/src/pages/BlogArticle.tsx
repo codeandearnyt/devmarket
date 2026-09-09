@@ -3,12 +3,13 @@ import { useEffect } from "react";
 import { Link, useRoute } from "wouter";
 import { Streamdown } from "streamdown";
 import { trpc } from "@/lib/trpc";
+import { trackEvent } from "@/lib/analytics";
 import ScrollDepthBackground from "@/components/ScrollDepthBackground";
 
 export default function BlogArticle() {
   const [, params] = useRoute("/blog/:slug");
   const post = trpc.blog.bySlug.useQuery({ slug: params?.slug ?? "" }, { enabled: Boolean(params?.slug) });
-  useEffect(() => { if (post.data) document.title = `${post.data.title} | DevMarket Journal`; }, [post.data]);
+  useEffect(() => { if (post.data) { document.title = `${post.data.title} | DevMarket Journal`; trackEvent("article_view", { slug: post.data.slug, category: post.data.category }); } }, [post.data]);
   if (post.isLoading) return <div className="liquid-page min-h-screen bg-[#eef8fa] p-10 font-mono text-xs uppercase tracking-[.16em] text-[#13b8b0]">Loading article…</div>;
   if (!post.data) return <div className="liquid-page min-h-screen bg-[#eef8fa] px-5 py-32 text-center text-[#172039]"><BookOpen className="mx-auto text-[#13b8b0]" size={32} /><h1 className="mt-5 font-display text-4xl font-semibold">Article not found.</h1><Link href="/blog" className="mt-7 inline-flex rounded-full bg-[#172039] px-5 py-3 text-sm font-semibold text-white">Back to journal</Link></div>;
   const article = post.data;
