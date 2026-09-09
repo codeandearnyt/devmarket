@@ -15,6 +15,13 @@
       "when": 1788882116050,
       "tag": "0001_right_ben_urich",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1788917302511,
+      "tag": "0002_eminent_mongu",
+      "breakpoints": true
     }
   ]
 }

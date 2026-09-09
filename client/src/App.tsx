@@ -9,6 +9,8 @@ import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogArticle = lazy(() => import("./pages/BlogArticle"));
 const BuyerDashboard = lazy(() => import("./pages/BuyerDashboard"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const ProductDetails = lazy(() => import("./pages/Checkout").then(module => ({ default: module.ProductDetails })));
@@ -27,6 +29,8 @@ function Router() {
     <Route path="/" component={Home} />
     <Route path="/product/:slug" component={ProductDetails} />
     <Route path="/checkout/:slug" component={Checkout} />
+    <Route path="/blog" component={Blog} />
+    <Route path="/blog/:slug" component={BlogArticle} />
     <Route path="/dashboard" component={BuyerDashboard} />
     <Route path="/developer" component={Developer} />
     <Route path="/about" component={InfoPage} />

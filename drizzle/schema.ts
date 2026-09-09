@@ -87,9 +87,29 @@ export const paymentSettings = mysqlTable("paymentSettings", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+export const blogStatusEnum = mysqlEnum("status", ["DRAFT", "PUBLISHED"]);
+
+export const blogPosts = mysqlTable("blogPosts", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 220 }).notNull(),
+  slug: varchar("slug", { length: 240 }).notNull().unique(),
+  excerpt: varchar("excerpt", { length: 320 }).notNull(),
+  content: text("content").notNull(),
+  coverImageUrl: text("coverImageUrl"),
+  category: varchar("category", { length: 120 }).notNull(),
+  tags: json("tags"),
+  authorName: varchar("authorName", { length: 160 }).notNull(),
+  status: blogStatusEnum.default("DRAFT").notNull(),
+  publishedAt: timestamp("publishedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Category = typeof categories.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Order = typeof orders.$inferSelect;
 export type PaymentSettings = typeof paymentSettings.$inferSelect;
+export type BlogPost = typeof blogPosts.$inferSelect;
+export type InsertBlogPost = typeof blogPosts.$inferInsert;

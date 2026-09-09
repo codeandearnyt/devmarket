@@ -1,7 +1,7 @@
 import type { Response } from "express";
 
 export type RealtimeEvent = {
-  type: "catalog.updated" | "order.updated" | "payment.updated" | "system.notice";
+  type: "catalog.updated" | "order.updated" | "payment.updated" | "blog.updated" | "system.notice";
   scope?: "public" | "buyer" | "admin";
   userId?: number;
   data?: Record<string, unknown>;

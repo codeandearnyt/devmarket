@@ -14,6 +14,7 @@ export function useRealtime(scope: RealtimeScope) {
       void utils.catalog.products.invalidate();
       void utils.catalog.categories.invalidate();
     };
+    const invalidateBlog = () => { void utils.blog.list.invalidate(); };
     const invalidateOrders = () => {
       if (scope === "buyer" || scope === "admin") void utils.orders.myOrders.invalidate();
       if (scope === "admin") {
@@ -27,13 +28,16 @@ export function useRealtime(scope: RealtimeScope) {
     const onCatalog = () => invalidateCatalog();
     const onOrder = () => invalidateOrders();
     const onPayment = () => invalidateOrders();
+    const onBlog = () => invalidateBlog();
     source.addEventListener("ready", onReady);
     source.addEventListener("catalog.updated", onCatalog);
     source.addEventListener("order.updated", onOrder);
     source.addEventListener("payment.updated", onPayment);
+    source.addEventListener("blog.updated", onBlog);
     source.onerror = () => { if (!disposed) setConnected(false); };
     const fallback = window.setInterval(() => {
       invalidateCatalog();
+      invalidateBlog();
       if (scope !== "storefront") invalidateOrders();
     }, 30_000);
     return () => {

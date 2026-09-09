@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
+  blogPosts,
   categories,
   InsertUser,
   orders,
@@ -61,13 +62,15 @@ export async function listCategories() {
   return db.select().from(categories).orderBy(asc(categories.name));
 }
 
-export async function listProducts(filters?: { categoryId?: number; type?: 'SOURCE_CODE' | 'PROMPT' | 'PROJECT'; search?: string; sort?: 'newest' | 'price' | 'popular' }) {
+export async function listProducts(filters?: { categoryId?: number; type?: 'SOURCE_CODE' | 'PROMPT' | 'PROJECT'; search?: string; minPrice?: number; maxPrice?: number; sort?: 'newest' | 'price' | 'popular' }) {
   const db = await getDb();
   if (!db) return [];
   const conditions = [eq(products.isPublished, true)];
   if (filters?.categoryId) conditions.push(eq(products.categoryId, filters.categoryId));
   if (filters?.type) conditions.push(eq(products.type, filters.type));
   if (filters?.search) conditions.push(or(like(products.title, `%${filters.search}%`), like(products.shortDescription, `%${filters.search}%`))!);
+  if (filters?.minPrice !== undefined) conditions.push(sql`coalesce(${products.discountPrice}, ${products.price}) >= ${filters.minPrice}`);
+  if (filters?.maxPrice !== undefined) conditions.push(sql`coalesce(${products.discountPrice}, ${products.price}) <= ${filters.maxPrice}`);
   const orderBy = filters?.sort === 'price'
     ? asc(sql`coalesce(${products.discountPrice}, ${products.price})`)
     : filters?.sort === 'popular'
@@ -125,6 +128,47 @@ export async function getPaymentSettings() {
   if (!db) return undefined;
   const result = await db.select().from(paymentSettings).limit(1);
   return result[0];
+}
+
+export async function listPublishedBlogPosts() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(blogPosts).where(eq(blogPosts.status, "PUBLISHED")).orderBy(desc(blogPosts.publishedAt), desc(blogPosts.createdAt));
+}
+
+export async function getPublishedBlogPostBySlug(slug: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(blogPosts).where(and(eq(blogPosts.slug, slug), eq(blogPosts.status, "PUBLISHED"))).limit(1);
+  return result[0];
+}
+
+export async function listAdminBlogPosts() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(blogPosts).orderBy(desc(blogPosts.updatedAt), desc(blogPosts.createdAt));
+}
+
+export async function createBlogPost(data: typeof blogPosts.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.insert(blogPosts).values(data);
+  const result = await db.select().from(blogPosts).where(eq(blogPosts.slug, data.slug)).limit(1);
+  return result[0];
+}
+
+export async function updateBlogPost(id: number, data: Partial<typeof blogPosts.$inferInsert>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.update(blogPosts).set(data).where(eq(blogPosts.id, id));
+  const result = await db.select().from(blogPosts).where(eq(blogPosts.id, id)).limit(1);
+  return result[0];
+}
+
+export async function deleteBlogPost(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.delete(blogPosts).where(eq(blogPosts.id, id));
 }
 
 export async function updateOrderStatus(id: number, status: 'PAID' | 'DELIVERED' | 'REJECTED', adminId: number, reason?: string) {

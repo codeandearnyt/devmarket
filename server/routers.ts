@@ -2,23 +2,29 @@ import crypto from "node:crypto";
 import { eq } from "drizzle-orm";
 import Razorpay from "razorpay";
 import { z } from "zod";
-import { categories, orders, paymentSettings, products, users } from "../drizzle/schema";
+import { blogPosts, categories, orders, paymentSettings, products, users } from "../drizzle/schema";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import {
+  createBlogPost,
   createOrder,
+  deleteBlogPost,
   getDashboardStats,
   getDb,
   getOrderForUser,
   getPaymentSettings,
+  getPublishedBlogPostBySlug,
   getProductBySlug,
   listAdminOrders,
+  listAdminBlogPosts,
   listCategories,
   listFeaturedProducts,
   listOrdersForUser,
   listProducts,
+  listPublishedBlogPosts,
+  updateBlogPost,
   updateOrderStatus,
 } from "./db";
 import { sendDeliveryEmail } from "./email";
@@ -29,6 +35,12 @@ const productInput = z.object({
   title: z.string().min(3).max(220), slug: z.string().min(3).max(240), description: z.string().min(10), shortDescription: z.string().min(5).max(320),
   type: z.enum(["SOURCE_CODE", "PROMPT", "PROJECT"]), categoryId: z.number().int().positive(), price: z.number().int().nonnegative(), discountPrice: z.number().int().nonnegative().nullable().optional(),
   thumbnailUrl: z.string().min(1), previewImages: z.array(z.string()).optional(), demoUrl: z.string().nullable().optional(), techStack: z.array(z.string()).optional(), fileUrl: z.string().min(1), isPublished: z.boolean().optional(), isFeatured: z.boolean().optional(),
+});
+
+const blogInput = z.object({
+  title: z.string().min(5).max(220), slug: z.string().min(3).max(240).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  excerpt: z.string().min(20).max(320), content: z.string().min(80), coverImageUrl: z.string().url().nullable().optional(),
+  category: z.string().min(2).max(120), tags: z.array(z.string().min(1).max(40)).max(8).optional(), authorName: z.string().min(2).max(160), status: z.enum(["DRAFT", "PUBLISHED"]),
 });
 
 const orderNumber = () => {
@@ -66,9 +78,13 @@ export const appRouter = router({
   catalog: router({
     categories: publicProcedure.query(() => listCategories()),
     featured: publicProcedure.query(() => listFeaturedProducts()),
-    products: publicProcedure.input(z.object({ categoryId: z.number().optional(), type: z.enum(["SOURCE_CODE", "PROMPT", "PROJECT"]).optional(), search: z.string().optional(), sort: z.enum(["newest", "price", "popular"]).optional() }).optional()).query(({ input }) => listProducts(input)),
+    products: publicProcedure.input(z.object({ categoryId: z.number().optional(), type: z.enum(["SOURCE_CODE", "PROMPT", "PROJECT"]).optional(), search: z.string().optional(), minPrice: z.number().int().nonnegative().optional(), maxPrice: z.number().int().nonnegative().optional(), sort: z.enum(["newest", "price", "popular"]).optional() }).optional()).query(({ input }) => listProducts(input)),
     productBySlug: publicProcedure.input(z.object({ slug: z.string() })).query(({ input }) => getProductBySlug(input.slug)),
     settings: publicProcedure.query(() => getPaymentSettings()),
+  }),
+  blog: router({
+    list: publicProcedure.query(() => listPublishedBlogPosts()),
+    bySlug: publicProcedure.input(z.object({ slug: z.string() })).query(({ input }) => getPublishedBlogPostBySlug(input.slug)),
   }),
   orders: router({
     myOrders: protectedProcedure.query(({ ctx }) => listOrdersForUser(ctx.user.id)),
@@ -182,6 +198,23 @@ export const appRouter = router({
       else await db.insert(paymentSettings).values(input);
       publishRealtime({ type: "catalog.updated", scope: "public", data: { action: "payment-settings-updated" } });
       return { success: true };
+    }),
+    blogs: adminProcedure.query(() => listAdminBlogPosts()),
+    createBlog: adminProcedure.input(blogInput).mutation(async ({ input }) => {
+      const post = await createBlogPost({ ...input, coverImageUrl: input.coverImageUrl ?? null, tags: input.tags ?? [], publishedAt: input.status === "PUBLISHED" ? new Date() : null });
+      publishRealtime({ type: "blog.updated", scope: "public", data: { action: "created", slug: input.slug } });
+      return post;
+    }),
+    updateBlog: adminProcedure.input(blogInput.extend({ id: z.number().int().positive() })).mutation(async ({ input }) => {
+      const { id, ...values } = input;
+      const post = await updateBlogPost(id, { ...values, coverImageUrl: values.coverImageUrl ?? null, tags: values.tags ?? [], publishedAt: values.status === "PUBLISHED" ? new Date() : null });
+      publishRealtime({ type: "blog.updated", scope: "public", data: { action: "updated", id } });
+      return post;
+    }),
+    deleteBlog: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input }) => {
+      await deleteBlogPost(input.id);
+      publishRealtime({ type: "blog.updated", scope: "public", data: { action: "deleted", id: input.id } });
+      return { success: true } as const;
     }),
     users: adminProcedure.query(async () => {
       const db = await getDb();
