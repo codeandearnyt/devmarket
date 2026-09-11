@@ -1,12 +1,15 @@
 import { and, asc, desc, eq, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
+  analyticsEvents,
   blogPosts,
   categories,
   InsertUser,
   orders,
   paymentSettings,
   products,
+  reviews,
+  subscribers,
   users,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -90,6 +93,83 @@ export async function getProductBySlug(slug: string) {
   if (!db) return undefined;
   const result = await db.select().from(products).where(and(eq(products.slug, slug), eq(products.isPublished, true))).limit(1);
   return result[0];
+}
+
+export async function listProductReviews(productId: number) {
+  const db = await getDb();
+  if (!db) return { average: 0, count: 0, reviews: [] };
+  const [rows, summary] = await Promise.all([
+    db.select({ review: reviews, buyerName: users.name }).from(reviews).innerJoin(users, eq(reviews.userId, users.id)).where(and(eq(reviews.productId, productId), eq(reviews.isApproved, true))).orderBy(desc(reviews.createdAt)),
+    db.select({ average: sql<number>`coalesce(avg(${reviews.rating}), 0)`, count: sql<number>`count(*)` }).from(reviews).where(and(eq(reviews.productId, productId), eq(reviews.isApproved, true))),
+  ]);
+  return { average: Number(summary[0]?.average ?? 0), count: Number(summary[0]?.count ?? 0), reviews: rows };
+}
+
+export async function getVerifiedPurchase(userId: number, productId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select({ id: orders.id }).from(orders).where(and(eq(orders.userId, userId), eq(orders.productId, productId), or(eq(orders.status, "PAID"), eq(orders.status, "DELIVERED")))).limit(1);
+  return result[0];
+}
+
+export async function createReview(data: typeof reviews.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.insert(reviews).values(data);
+  const result = await db.select().from(reviews).where(and(eq(reviews.userId, data.userId), eq(reviews.productId, data.productId))).orderBy(desc(reviews.createdAt)).limit(1);
+  return result[0];
+}
+
+export async function subscribeEmail(email: string, source = "journal") {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.insert(subscribers).values({ email, source, isActive: true }).onDuplicateKeyUpdate({ set: { isActive: true, source } });
+  return { success: true as const };
+}
+
+export async function listSubscribers() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(subscribers).orderBy(desc(subscribers.createdAt));
+}
+
+export async function recordAnalyticsEvent(data: typeof analyticsEvents.$inferInsert) {
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(analyticsEvents).values(data);
+}
+
+export async function getAdminAnalytics() {
+  const db = await getDb();
+  if (!db) return { filterInteractions: 0, articleViews: 0, topArticles: [], topProducts: [], daily: [] };
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const [events, sales] = await Promise.all([
+    db.select().from(analyticsEvents).where(sql`${analyticsEvents.createdAt} >= ${since}`).orderBy(desc(analyticsEvents.createdAt)).limit(5000),
+    db.select({ productTitle: products.title, amount: orders.amount, createdAt: orders.createdAt }).from(orders).innerJoin(products, eq(orders.productId, products.id)).where(or(eq(orders.status, "PAID"), eq(orders.status, "DELIVERED"))).orderBy(desc(orders.createdAt)).limit(5000),
+  ]);
+  const articleCounts = new Map<string, number>();
+  const productSales = new Map<string, { sales: number; revenue: number }>();
+  const daily = new Map<string, { events: number; revenue: number }>();
+  for (const event of events) {
+    const day = event.createdAt.toISOString().slice(0, 10);
+    const dayRow = daily.get(day) ?? { events: 0, revenue: 0 };
+    dayRow.events += 1;
+    daily.set(day, dayRow);
+    if (event.eventName === "article_view") {
+      const slug = typeof event.metadata === "object" && event.metadata && "slug" in event.metadata ? String((event.metadata as { slug?: unknown }).slug ?? "unknown") : "unknown";
+      articleCounts.set(slug, (articleCounts.get(slug) ?? 0) + 1);
+    }
+  }
+  for (const sale of sales) {
+    const item = productSales.get(sale.productTitle) ?? { sales: 0, revenue: 0 };
+    item.sales += 1;
+    item.revenue += Number(sale.amount ?? 0);
+    const day = sale.createdAt.toISOString().slice(0, 10);
+    const dayRow = daily.get(day) ?? { events: 0, revenue: 0 };
+    dayRow.revenue += Number(sale.amount ?? 0);
+    daily.set(day, dayRow);
+  }
+  return { filterInteractions: events.filter(event => event.eventName === "catalog_filter_changed").length, articleViews: events.filter(event => event.eventName === "article_view").length, topArticles: Array.from(articleCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([slug, views]) => ({ slug, views })), topProducts: Array.from(productSales.entries()).sort((a, b) => b[1].revenue - a[1].revenue).slice(0, 5).map(([title, value]) => ({ title, ...value })), daily: Array.from(daily.entries()).sort((a, b) => a[0].localeCompare(b[0])).slice(-14).map(([date, value]) => ({ date, ...value })) };
 }
 
 export async function createOrder(data: typeof orders.$inferInsert) {

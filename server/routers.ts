@@ -10,9 +10,12 @@ import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_
 import {
   createBlogPost,
   createOrder,
+  createReview,
   deleteBlogPost,
+  getAdminAnalytics,
   getDashboardStats,
   getDb,
+  getVerifiedPurchase,
   getOrderForUser,
   getPaymentSettings,
   getPublishedBlogPostBySlug,
@@ -25,6 +28,10 @@ import {
   listProducts,
   listPublishedBlogPosts,
   listPublishedBlogPostsPage,
+  listProductReviews,
+  listSubscribers,
+  recordAnalyticsEvent,
+  subscribeEmail,
   updateBlogPost,
   updateOrderStatus,
 } from "./db";
@@ -81,6 +88,7 @@ export const appRouter = router({
     featured: publicProcedure.query(() => listFeaturedProducts()),
     products: publicProcedure.input(z.object({ categoryId: z.number().optional(), type: z.enum(["SOURCE_CODE", "PROMPT", "PROJECT"]).optional(), search: z.string().optional(), minPrice: z.number().int().nonnegative().optional(), maxPrice: z.number().int().nonnegative().optional(), sort: z.enum(["newest", "price", "popular"]).optional() }).optional()).query(({ input }) => listProducts(input)),
     productBySlug: publicProcedure.input(z.object({ slug: z.string() })).query(({ input }) => getProductBySlug(input.slug)),
+    reviews: publicProcedure.input(z.object({ productId: z.number().int().positive() })).query(({ input }) => listProductReviews(input.productId)),
     settings: publicProcedure.query(() => getPaymentSettings()),
   }),
   blog: router({
@@ -89,6 +97,11 @@ export const appRouter = router({
   }),
   orders: router({
     myOrders: protectedProcedure.query(({ ctx }) => listOrdersForUser(ctx.user.id)),
+    submitReview: protectedProcedure.input(z.object({ productId: z.number().int().positive(), rating: z.number().int().min(1).max(5), review: z.string().min(10).max(1000) })).mutation(async ({ ctx, input }) => {
+      const purchase = await getVerifiedPurchase(ctx.user.id, input.productId);
+      if (!purchase) throw new Error("Reviews are available after a verified purchase");
+      return createReview({ productId: input.productId, userId: ctx.user.id, rating: input.rating, review: input.review, isApproved: true });
+    }),
     createManual: protectedProcedure.input(z.object({ productId: z.number().int().positive(), screenshotUrl: z.string().min(1), manualPaymentNote: z.string().min(4).max(120) })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database is not configured");
@@ -138,8 +151,16 @@ export const appRouter = router({
       return { url: owned.product.fileUrl, productTitle: owned.product.title };
     }),
   }),
+  newsletter: router({
+    subscribe: publicProcedure.input(z.object({ email: z.string().email().max(320), source: z.string().max(80).optional() })).mutation(({ input }) => subscribeEmail(input.email.toLowerCase(), input.source ?? "journal")),
+  }),
+  analytics: router({
+    track: publicProcedure.input(z.object({ eventName: z.enum(["catalog_filter_changed", "article_view"]), path: z.string().max(320).optional(), metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional() })).mutation(({ input }) => recordAnalyticsEvent(input)),
+  }),
   admin: router({
     stats: adminProcedure.query(() => getDashboardStats()),
+    analytics: adminProcedure.query(() => getAdminAnalytics()),
+    subscribers: adminProcedure.query(() => listSubscribers()),
     orders: adminProcedure.query(() => listAdminOrders()),
     approveOrder: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       const updated = await updateOrderStatus(input.id, "DELIVERED", ctx.user.id);
