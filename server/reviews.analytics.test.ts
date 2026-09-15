@@ -20,5 +20,6 @@ describe("reviews, newsletter, and analytics boundaries", () => {
     const caller = appRouter.createCaller(context({ id: 4, openId: "buyer", email: "buyer@example.com", name: "Buyer", loginMethod: "test", role: "user", isDisabled: false, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() }));
     await expect(caller.admin.analytics()).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(caller.admin.subscribers()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.admin.reviews()).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });

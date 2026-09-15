@@ -133,6 +133,24 @@ export async function listSubscribers() {
   return db.select().from(subscribers).orderBy(desc(subscribers.createdAt));
 }
 
+export async function listAllReviews() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({ review: reviews, buyerName: users.name, buyerEmail: users.email, productTitle: products.title })
+    .from(reviews)
+    .innerJoin(users, eq(reviews.userId, users.id))
+    .innerJoin(products, eq(reviews.productId, products.id))
+    .orderBy(desc(reviews.createdAt));
+}
+
+export async function setReviewApproval(id: number, isApproved: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.update(reviews).set({ isApproved }).where(eq(reviews.id, id));
+  const result = await db.select().from(reviews).where(eq(reviews.id, id)).limit(1);
+  return result[0];
+}
+
 export async function recordAnalyticsEvent(data: typeof analyticsEvents.$inferInsert) {
   const db = await getDb();
   if (!db) return;

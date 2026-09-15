@@ -22,6 +22,7 @@ import {
   getProductBySlug,
   listAdminOrders,
   listAdminBlogPosts,
+  listAllReviews,
   listCategories,
   listFeaturedProducts,
   listOrdersForUser,
@@ -32,6 +33,7 @@ import {
   listSubscribers,
   recordAnalyticsEvent,
   subscribeEmail,
+  setReviewApproval,
   updateBlogPost,
   updateOrderStatus,
 } from "./db";
@@ -161,6 +163,12 @@ export const appRouter = router({
     stats: adminProcedure.query(() => getDashboardStats()),
     analytics: adminProcedure.query(() => getAdminAnalytics()),
     subscribers: adminProcedure.query(() => listSubscribers()),
+    reviews: adminProcedure.query(() => listAllReviews()),
+    setReviewApproval: adminProcedure.input(z.object({ id: z.number().int().positive(), isApproved: z.boolean() })).mutation(async ({ input }) => {
+      const review = await setReviewApproval(input.id, input.isApproved);
+      publishRealtime({ type: "catalog.updated", scope: "public", data: { action: "review-moderated", reviewId: input.id } });
+      return review;
+    }),
     orders: adminProcedure.query(() => listAdminOrders()),
     approveOrder: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       const updated = await updateOrderStatus(input.id, "DELIVERED", ctx.user.id);
