@@ -16,6 +16,7 @@ const Checkout = lazy(() => import("./pages/Checkout"));
 const ProductDetails = lazy(() => import("./pages/Checkout").then(module => ({ default: module.ProductDetails })));
 const Developer = lazy(() => import("./pages/Developer"));
 const InfoPage = lazy(() => import("./pages/InfoPage"));
+const Login = lazy(() => import("./pages/Login"));
 
 function useDevMarketLocation() {
   const [location, navigate] = useHashLocation();
@@ -37,6 +38,7 @@ function Router() {
     <Route path="/privacy" component={InfoPage} />
     <Route path="/terms" component={InfoPage} />
     <Route path="/contact" component={InfoPage} />
+    <Route path="/login" component={Login} />
     <Route path="/admin" component={AdminDashboard} />
     <Route path="/404" component={NotFound} />
     <Route component={NotFound} />

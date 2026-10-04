@@ -34,7 +34,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   if (!db) return;
   const values: InsertUser = { openId: user.openId };
   const updateSet: Record<string, unknown> = {};
-  (['name', 'email', 'loginMethod'] as const).forEach(field => {
+  (['name', 'email', 'loginMethod', 'passwordHash'] as const).forEach(field => {
     if (user[field] !== undefined) {
       values[field] = user[field] ?? null;
       updateSet[field] = user[field] ?? null;
@@ -57,6 +57,20 @@ export async function getUserByOpenId(openId: string) {
   if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
   return result[0];
+}
+
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result[0];
+}
+
+export async function createCredentialUser(data: { openId: string; email: string; name: string; passwordHash: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.insert(users).values({ ...data, loginMethod: "email" });
+  return getUserByOpenId(data.openId);
 }
 
 export async function listCategories() {
@@ -147,6 +161,14 @@ export async function setReviewApproval(id: number, isApproved: boolean) {
   const db = await getDb();
   if (!db) throw new Error("Database is not configured");
   await db.update(reviews).set({ isApproved }).where(eq(reviews.id, id));
+  const result = await db.select().from(reviews).where(eq(reviews.id, id)).limit(1);
+  return result[0];
+}
+
+export async function setReviewReply(id: number, adminReply: string | null) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.update(reviews).set({ adminReply, repliedAt: adminReply ? new Date() : null }).where(eq(reviews.id, id));
   const result = await db.select().from(reviews).where(eq(reviews.id, id)).limit(1);
   return result[0];
 }

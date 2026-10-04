@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { eq } from "drizzle-orm";
 import Razorpay from "razorpay";
 import { z } from "zod";
-import { blogPosts, categories, orders, paymentSettings, products, users } from "../drizzle/schema";
+import { blogPosts, categories, orders, paymentSettings, products, users, type User } from "../drizzle/schema";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -34,12 +34,14 @@ import {
   recordAnalyticsEvent,
   subscribeEmail,
   setReviewApproval,
+  setReviewReply,
   updateBlogPost,
   updateOrderStatus,
 } from "./db";
 import { sendDeliveryEmail } from "./email";
 import { storagePut } from "./storage";
 import { publishRealtime } from "./realtime";
+import { authenticateCredentialUser, createCredentialSession, registerCredentialUser } from "./credentials";
 
 const productInput = z.object({
   title: z.string().min(3).max(220), slug: z.string().min(3).max(240), description: z.string().min(10), shortDescription: z.string().min(5).max(320),
@@ -68,6 +70,12 @@ const uploadDataUrl = async (dataUrl: string, prefix: string) => {
   return result.url;
 };
 
+const publicUser = (user: User | null | undefined) => {
+  if (!user) return null;
+  const { passwordHash: _passwordHash, ...safeUser } = user;
+  return safeUser;
+};
+
 function verifyRazorpaySignature(orderId: string, paymentId: string, signature: string) {
   const secret = process.env.RAZORPAY_KEY_SECRET;
   if (!secret) return false;
@@ -78,7 +86,20 @@ function verifyRazorpaySignature(orderId: string, paymentId: string, signature: 
 export const appRouter = router({
   system: systemRouter,
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(opts => publicUser(opts.ctx.user)),
+    register: publicProcedure.input(z.object({ email: z.string().email().max(320), name: z.string().trim().min(2).max(160), password: z.string().min(8).max(128) })).mutation(async ({ ctx, input }) => {
+      const user = await registerCredentialUser(input.email, input.name, input.password);
+      const token = await createCredentialSession(user);
+      ctx.res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: 365 * 24 * 60 * 60 * 1000 });
+      return publicUser(user);
+    }),
+    login: publicProcedure.input(z.object({ email: z.string().email().max(320), password: z.string().min(8).max(128) })).mutation(async ({ ctx, input }) => {
+      const user = await authenticateCredentialUser(input.email, input.password);
+      if (!user) throw new Error("Invalid email or password");
+      const token = await createCredentialSession(user);
+      ctx.res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: 365 * 24 * 60 * 60 * 1000 });
+      return publicUser(user);
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -169,6 +190,11 @@ export const appRouter = router({
       publishRealtime({ type: "catalog.updated", scope: "public", data: { action: "review-moderated", reviewId: input.id } });
       return review;
     }),
+    setReviewReply: adminProcedure.input(z.object({ id: z.number().int().positive(), reply: z.string().max(1200) })).mutation(async ({ input }) => {
+      const review = await setReviewReply(input.id, input.reply.trim() || null);
+      publishRealtime({ type: "catalog.updated", scope: "public", data: { action: "review-replied", reviewId: input.id } });
+      return review;
+    }),
     orders: adminProcedure.query(() => listAdminOrders()),
     approveOrder: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       const updated = await updateOrderStatus(input.id, "DELIVERED", ctx.user.id);
@@ -212,6 +238,7 @@ export const appRouter = router({
       publishRealtime({ type: "catalog.updated", scope: "public", data: { action: "deleted", productId: input.id } });
       return { success: true };
     }),
+    uploadProductImage: adminProcedure.input(z.object({ dataUrl: z.string().regex(/^data:image\//) })).mutation(async ({ ctx, input }) => ({ url: await uploadDataUrl(input.dataUrl, `devmarket/product-images/${ctx.user.id}`) })),
     categories: adminProcedure.query(() => listCategories()),
     createCategory: adminProcedure.input(z.object({ name: z.string().min(2), slug: z.string().min(2), description: z.string().optional() })).mutation(async ({ input }) => {
       const db = await getDb();
