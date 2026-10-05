@@ -48,7 +48,7 @@ export default function Checkout() {
   const selectedMethod = method === "RAZORPAY" && razorEnabled ? "RAZORPAY" : "MANUAL_QR";
   async function pay() {
     if (!product) return;
-    if (!isAuthenticated) { window.location.hash = "#/login"; return; }
+    if (!isAuthenticated) { window.location.href = "/#/login"; return; }
     if (method === "RAZORPAY") {
       const created = await razorpayCreate.mutateAsync({ productId: product.id });
       if (!window.Razorpay || !created.order.razorpayOrderId) { setPaymentError("Secure checkout is not available right now. Please try again later."); return; }

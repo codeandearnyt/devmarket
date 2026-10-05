@@ -5,6 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { useRealtime } from "@/hooks/useRealtime";
 import ScrollDepthBackground from "@/components/ScrollDepthBackground";
 import NewsletterSignup from "@/components/NewsletterSignup";
+import SiteFooter from "@/components/SiteFooter";
 
 export default function Blog() {
   useRealtime("storefront");
@@ -21,6 +22,6 @@ export default function Blog() {
       {data && data.totalPages > 1 && <nav aria-label="Journal pagination" className="mt-10 flex items-center justify-center gap-3"><button type="button" disabled={page === 1} onClick={() => setPage(current => Math.max(1, current - 1))} className="inline-flex items-center gap-2 rounded-full border border-[#d7e8eb] bg-[#f8ffff] px-4 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"><ArrowLeft size={15} /> Previous</button><span className="font-mono text-[10px] uppercase tracking-[.16em] text-[#71809f]">Page {data.page} of {data.totalPages}</span><button type="button" disabled={page >= data.totalPages} onClick={() => setPage(current => Math.min(data.totalPages, current + 1))} className="inline-flex items-center gap-2 rounded-full bg-[#172039] px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Next <ArrowRight size={15} /></button></nav>}
       <div className="mt-16"><NewsletterSignup /></div>
     </main>
-    <footer className="relative z-10 border-t border-[#d7e8eb] px-5 py-8 lg:px-8"><div className="mx-auto flex max-w-[1280px] flex-wrap justify-between gap-4 text-sm text-[#53617d]"><Link href="/" className="font-display font-semibold text-[#172039]">dev<span className="text-[#13b8b0]">market</span></Link><span>Practical ideas for people who build.</span><Link href="/developer" className="font-semibold hover:text-[#13b8b0]">Meet Nitin Sharma ↗</Link></div></footer>
+    <SiteFooter />
   </div>;
 }

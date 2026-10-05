@@ -1,8 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Route, Router as WouterRouter, Switch } from "wouter";
-import { useHashLocation } from "wouter/use-hash-location";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
@@ -19,10 +18,25 @@ const InfoPage = lazy(() => import("./pages/InfoPage"));
 const Login = lazy(() => import("./pages/Login"));
 
 function useDevMarketLocation() {
-  const [location, navigate] = useHashLocation();
-  const pathLocation = window.location.pathname !== "/" ? window.location.pathname : location;
-  const sectionHash = pathLocation === "/explore" || pathLocation === "/how-it-works";
-  return [sectionHash ? "/" : pathLocation, navigate] as [string, typeof navigate];
+  const readLocation = () => window.location.pathname === "/" && window.location.hash === "#/admin" ? "/admin" : window.location.pathname || "/";
+  const [location, setLocation] = useState(readLocation);
+  useEffect(() => {
+    const sync = () => setLocation(readLocation());
+    window.addEventListener("popstate", sync);
+    window.addEventListener("hashchange", sync);
+    return () => { window.removeEventListener("popstate", sync); window.removeEventListener("hashchange", sync); };
+  }, []);
+  const navigate = (to: string, options?: { replace?: boolean }) => {
+    if (to === "/admin") {
+      window.location.hash = "/admin";
+      setLocation("/admin");
+      return;
+    }
+    const method = options?.replace ? "replaceState" : "pushState";
+    window.history[method]({}, "", to);
+    setLocation(to);
+  };
+  return [location, navigate] as [string, typeof navigate];
 }
 
 function Router() {

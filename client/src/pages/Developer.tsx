@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowUpRight, Bot, Code2, Globe2, Layers3, Mail, Sparkles, W
 import { Link } from "wouter";
 import ScrollDepthBackground from "@/components/ScrollDepthBackground";
 import { useEffect, useState } from "react";
+import SiteFooter from "@/components/SiteFooter";
 
 const skills = [
   { icon: <Workflow size={20} />, title: "Automated works", copy: "Designing repeatable workflows that connect tools, APIs, agents, and people so useful work keeps moving with less manual effort." },
@@ -64,6 +65,6 @@ export default function Developer() {
       <section className="border-t border-white/80 bg-white/38 py-16"><div className="mx-auto flex max-w-[1280px] flex-col items-start justify-between gap-7 px-5 md:flex-row md:items-end lg:px-8"><div><p className="font-mono text-[11px] uppercase tracking-[.2em] text-[#13b8b0]">Currently exploring</p><h2 className="mt-3 max-w-xl font-display text-4xl font-semibold leading-[.95] tracking-[-.07em] md:text-5xl">Automation systems, AI-native products, and better ways to learn by building.</h2></div><a href="mailto:nitin.sharma@example.com" className="btn inline-flex items-center rounded-full bg-[#13b8b0] px-6 py-3.5 text-sm font-semibold text-white hover:bg-[#172039]"><Mail className="mr-2" size={16} /> Start a conversation</a></div></section>
     </main>
 
-    <footer className="border-t border-white/80 px-5 py-8 lg:px-8"><div className="mx-auto flex max-w-[1280px] flex-col justify-between gap-4 text-sm text-[#53617d] md:flex-row"><span className="font-display font-semibold text-[#172039]">Nitin Sharma / Developer</span><span>Building with curiosity and responsibility.</span><span className="font-mono text-[10px] uppercase tracking-[.14em]">© 2026</span></div></footer>
+    <SiteFooter />
   </div>;
 }
