@@ -93,5 +93,11 @@ input, select, textarea { background: rgba(255,255,255,.72) !important; border-c
 @keyframes liquidDriftA { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(5vw,4vh,0) scale(1.08); } }
 @keyframes liquidDriftB { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(-4vw,-3vh,0) scale(1.06); } }
 
+.tech-scroll-left { display: flex; width: max-content; animation: techScrollLeft var(--scroll-speed, 35s) linear infinite; }
+.tech-scroll-right { display: flex; width: max-content; animation: techScrollRight var(--scroll-speed, 40s) linear infinite; }
+@keyframes techScrollLeft { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes techScrollRight { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
 @media (max-width: 700px) { .liquid-page::before { width: 70vw; height: 70vw; } .liquid-page::after { width: 60vw; height: 60vw; } }

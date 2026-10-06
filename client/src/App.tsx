@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Route, Router as WouterRouter, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import SplashScreen from "./components/SplashScreen";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
@@ -17,30 +18,8 @@ const Developer = lazy(() => import("./pages/Developer"));
 const InfoPage = lazy(() => import("./pages/InfoPage"));
 const Login = lazy(() => import("./pages/Login"));
 
-function useDevMarketLocation() {
-  const readLocation = () => window.location.pathname === "/" && window.location.hash === "#/admin" ? "/admin" : window.location.pathname || "/";
-  const [location, setLocation] = useState(readLocation);
-  useEffect(() => {
-    const sync = () => setLocation(readLocation());
-    window.addEventListener("popstate", sync);
-    window.addEventListener("hashchange", sync);
-    return () => { window.removeEventListener("popstate", sync); window.removeEventListener("hashchange", sync); };
-  }, []);
-  const navigate = (to: string, options?: { replace?: boolean }) => {
-    if (to === "/admin") {
-      window.location.hash = "/admin";
-      setLocation("/admin");
-      return;
-    }
-    const method = options?.replace ? "replaceState" : "pushState";
-    window.history[method]({}, "", to);
-    setLocation(to);
-  };
-  return [location, navigate] as [string, typeof navigate];
-}
-
 function Router() {
-  return <WouterRouter hook={useDevMarketLocation}><Suspense fallback={<div className="min-h-screen bg-[#eef8fa] p-10 font-mono text-xs uppercase tracking-[.16em] text-[#13b8b0]">Loading DevMarket…</div>}><Switch>
+  return <WouterRouter><Suspense fallback={<div className="min-h-screen bg-[#eef8fa] p-10 font-mono text-xs uppercase tracking-[.16em] text-[#13b8b0]">Loading DevMarket…</div>}><Switch>
     <Route path="/" component={Home} />
     <Route path="/product/:slug" component={ProductDetails} />
     <Route path="/checkout/:slug" component={Checkout} />
@@ -60,5 +39,25 @@ function Router() {
 }
 
 export default function App() {
-  return <ErrorBoundary><ThemeProvider defaultTheme="light"><TooltipProvider><Toaster /><Router /></TooltipProvider></ThemeProvider></ErrorBoundary>;
+  const [splashDone, setSplashDone] = useState(false);
+  useEffect(() => {
+    // Optionally trigger splash only once per session
+    const shown = sessionStorage.getItem("devmarket_splash");
+    if (shown) setSplashDone(true);
+  }, []);
+  const handleSplashComplete = () => {
+    setSplashDone(true);
+    sessionStorage.setItem("devmarket_splash", "1");
+  };
+  return (
+    <ErrorBoundary>
+      <ThemeProvider defaultTheme="light">
+        <TooltipProvider>
+          <Toaster />
+          {!splashDone && <SplashScreen onComplete={handleSplashComplete} />}
+          {splashDone && <Router />}
+        </TooltipProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
+  );
 }

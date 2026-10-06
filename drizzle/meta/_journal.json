@@ -1,40 +1,12 @@
 {
   "version": "7",
-  "dialect": "mysql",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "5",
-      "when": 1788882067168,
-      "tag": "0000_quiet_firelord",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1788882116050,
-      "tag": "0001_right_ben_urich",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1788917302511,
-      "tag": "0002_eminent_mongu",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "5",
-      "when": 1789151293804,
-      "tag": "0003_stale_legion",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "5",
-      "when": 1791030818643,
-      "tag": "0004_mute_ezekiel_stane",
+      "version": "7",
+      "when": 1791286501863,
+      "tag": "0000_blushing_triathlon",
       "breakpoints": true
     }
   ]

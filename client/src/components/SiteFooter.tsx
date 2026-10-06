@@ -4,7 +4,7 @@ import { Link } from "wouter";
 const primaryLinks = [
   ["Explore", "/#explore"],
   ["How it works", "/#how-it-works"],
-  ["Journal", "/blog"],
+  ["Blog", "/blog"],
   ["Developer", "/developer"],
 ] as const;
 
