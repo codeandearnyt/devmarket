@@ -141,3 +141,28 @@ export const analyticsEvents = pgTable("analyticsEvents", {
   payload: json("payload"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
+
+// ---------------------------------------------------------------------------
+// Inferred row / insert types shared across the server.
+// ---------------------------------------------------------------------------
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+
+export type Category = typeof categories.$inferSelect;
+export type InsertCategory = typeof categories.$inferInsert;
+
+export type Product = typeof products.$inferSelect;
+export type InsertProduct = typeof products.$inferInsert;
+
+export type Order = typeof orders.$inferSelect;
+export type InsertOrder = typeof orders.$inferInsert;
+
+export type PaymentSetting = typeof paymentSettings.$inferSelect;
+export type BlogPost = typeof blogPosts.$inferSelect;
+export type InsertBlogPost = typeof blogPosts.$inferInsert;
+
+export type Review = typeof reviews.$inferSelect;
+export type InsertReview = typeof reviews.$inferInsert;
+
+export type Subscriber = typeof subscribers.$inferSelect;
+export type AnalyticsEvent = typeof analyticsEvents.$inferInsert;

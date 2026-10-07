@@ -139,7 +139,7 @@ export async function createReview(data: typeof reviews.$inferInsert) {
 export async function subscribeEmail(email: string, source = "journal") {
   const db = await getDb();
   if (!db) throw new Error("Database is not configured");
-  await db.insert(subscribers).values({ email, source, isActive: true }).onDuplicateKeyUpdate({ set: { isActive: true, source } });
+  await db.insert(subscribers).values({ email, source, isActive: true }).onConflictDoUpdate({ target: subscribers.email, set: { isActive: true, source } });
   return { success: true as const };
 }
 
@@ -197,8 +197,8 @@ export async function getAdminAnalytics() {
     const dayRow = daily.get(day) ?? { events: 0, revenue: 0 };
     dayRow.events += 1;
     daily.set(day, dayRow);
-    if (event.eventName === "article_view") {
-      const slug = typeof event.metadata === "object" && event.metadata && "slug" in event.metadata ? String((event.metadata as { slug?: unknown }).slug ?? "unknown") : "unknown";
+    if (event.eventType === "article_view") {
+      const slug = typeof event.payload === "object" && event.payload && "slug" in event.payload ? String((event.payload as { slug?: unknown }).slug ?? "unknown") : "unknown";
       articleCounts.set(slug, (articleCounts.get(slug) ?? 0) + 1);
     }
   }
@@ -211,7 +211,7 @@ export async function getAdminAnalytics() {
     dayRow.revenue += Number(sale.amount ?? 0);
     daily.set(day, dayRow);
   }
-  return { filterInteractions: events.filter(event => event.eventName === "catalog_filter_changed").length, articleViews: events.filter(event => event.eventName === "article_view").length, topArticles: Array.from(articleCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([slug, views]) => ({ slug, views })), topProducts: Array.from(productSales.entries()).sort((a, b) => b[1].revenue - a[1].revenue).slice(0, 5).map(([title, value]) => ({ title, ...value })), daily: Array.from(daily.entries()).sort((a, b) => a[0].localeCompare(b[0])).slice(-14).map(([date, value]) => ({ date, ...value })) };
+  return { filterInteractions: events.filter(event => event.eventType === "catalog_filter_changed").length, articleViews: events.filter(event => event.eventType === "article_view").length, topArticles: Array.from(articleCounts.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([slug, views]) => ({ slug, views })), topProducts: Array.from(productSales.entries()).sort((a, b) => b[1].revenue - a[1].revenue).slice(0, 5).map(([title, value]) => ({ title, ...value })), daily: Array.from(daily.entries()).sort((a, b) => a[0].localeCompare(b[0])).slice(-14).map(([date, value]) => ({ date, ...value })) };
 }
 
 export async function createOrder(data: typeof orders.$inferInsert) {

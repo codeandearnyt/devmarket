@@ -178,7 +178,7 @@ export const appRouter = router({
     subscribe: publicProcedure.input(z.object({ email: z.string().email().max(320), source: z.string().max(80).optional() })).mutation(({ input }) => subscribeEmail(input.email.toLowerCase(), input.source ?? "journal")),
   }),
   analytics: router({
-    track: publicProcedure.input(z.object({ eventName: z.enum(["catalog_filter_changed", "article_view"]), path: z.string().max(320).optional(), metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional() })).mutation(({ input }) => recordAnalyticsEvent(input)),
+    track: publicProcedure.input(z.object({ eventName: z.enum(["catalog_filter_changed", "article_view"]), path: z.string().max(320).optional(), metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional() })).mutation(({ input }) => recordAnalyticsEvent({ eventType: input.eventName, sessionId: typeof sessionStorage === "undefined" ? undefined : sessionStorage.getItem("devmarket_session") ?? undefined, payload: { ...(input.metadata ?? {}), ...(input.path ? { path: input.path } : {}) } })),
   }),
   admin: router({
     stats: adminProcedure.query(() => getDashboardStats()),

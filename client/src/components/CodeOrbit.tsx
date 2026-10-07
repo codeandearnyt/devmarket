@@ -203,6 +203,18 @@ export default function CodeOrbit() {
   const mousePos = useRef<[number, number]>([0, 0]);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [viewportHeight, setViewportHeight] = useState(
+    () => (typeof window === "undefined" ? 900 : window.innerHeight)
+  );
+
+  useEffect(() => {
+    const onResize = () => setViewportHeight(window.innerHeight);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // The auth panel never scrolls, so the scene has to give way on short viewports.
+  const sceneHeight = viewportHeight < 700 ? 168 : viewportHeight < 860 ? 200 : mobile ? 200 : 240;
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!containerRef.current || reducedMotion) return;
@@ -211,7 +223,7 @@ export default function CodeOrbit() {
   }, [reducedMotion]);
 
   return (
-    <div ref={containerRef} onMouseMove={handleMouseMove} className="relative w-full" style={{ height: mobile ? 200 : 240 }}>
+    <div ref={containerRef} onMouseMove={handleMouseMove} className="relative w-full" style={{ height: sceneHeight }}>
       <Canvas dpr={[1, mobile ? 1 : 1.5]} camera={{ position: [0, 0, 6], fov: 45 }} style={{ position: "absolute", inset: 0 }} gl={{ antialias: !mobile, alpha: true }}>
         <Scene mobile={mobile} mousePos={mousePos} />
       </Canvas>

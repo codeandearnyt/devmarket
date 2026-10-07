@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Route, Router as WouterRouter, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import LoadingAnimation from "./components/LoadingAnimation";
 import SplashScreen from "./components/SplashScreen";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
@@ -18,8 +19,19 @@ const Developer = lazy(() => import("./pages/Developer"));
 const InfoPage = lazy(() => import("./pages/InfoPage"));
 const Login = lazy(() => import("./pages/Login"));
 
+function RouteFallback() {
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-[#eef8fa]">
+      <LoadingAnimation size={132} className="-ml-[5px]" label="Loading DevMarket" />
+      <p className="animate-[pulse_1.6s_ease-in-out_infinite] font-mono text-[11px] uppercase tracking-[.28em] text-[#13b8b0]">
+        Loading DevMarket
+      </p>
+    </div>
+  );
+}
+
 function Router() {
-  return <WouterRouter><Suspense fallback={<div className="min-h-screen bg-[#eef8fa] p-10 font-mono text-xs uppercase tracking-[.16em] text-[#13b8b0]">Loading DevMarket…</div>}><Switch>
+  return <WouterRouter><Suspense fallback={<RouteFallback />}><Switch>
     <Route path="/" component={Home} />
     <Route path="/product/:slug" component={ProductDetails} />
     <Route path="/checkout/:slug" component={Checkout} />

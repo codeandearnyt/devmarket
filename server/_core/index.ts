@@ -75,14 +75,33 @@ export async function createApp() {
   return app;
 }
 
-export function startServer() {
-  createApp().then(app => {
-    const server = createServer(app);
-    const preferredPort = parseInt(process.env.PORT || "3000");
-    server.listen(preferredPort, () => {
-      console.log(`Server running on http://localhost:${preferredPort}/`);
-    });
-  }).catch(console.error);
+export async function startServer() {
+  const app = await createApp();
+  const server = createServer(app);
+  const preferredPort = parseInt(process.env.PORT || "3000", 10);
+  const port = Number.isNaN(preferredPort) ? 3000 : preferredPort;
+  server.listen(port, () => {
+    console.log(`Server running on http://localhost:${port}/`);
+  });
+  return server;
+}
+
+// Auto-start when this module is the process entrypoint (local dev / tsx watch).
+// Serverless platforms import the default handler instead and must not listen.
+const isDirectRun = (() => {
+  try {
+    const entry = process.argv[1] ?? "";
+    return /[\\/]server[\\/]_core[\\/]index\.(ts|js|mjs|cjs)$/.test(entry);
+  } catch {
+    return false;
+  }
+})();
+
+if (isDirectRun) {
+  startServer().catch(error => {
+    console.error("[Server] Failed to start:", error);
+    process.exit(1);
+  });
 }
 
 export default async function handler(req: any, res: any) {

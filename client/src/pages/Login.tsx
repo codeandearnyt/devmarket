@@ -22,7 +22,7 @@ export default function Login() {
     <div className="liquid-page min-h-screen bg-[#eef8fa] text-[#172039]">
       <main className="grid min-h-screen lg:h-screen overflow-hidden lg:grid-cols-[.82fr_1.18fr]">
         {/* LEFT — BRAND + CODE ORBIT */}
-        <section className="relative flex min-h-[520px] flex-col justify-between overflow-hidden bg-[#172039] px-7 py-6 text-white sm:px-12 lg:min-h-0 lg:h-screen lg:px-16 lg:py-8">
+        <section className="auth-brand relative flex min-h-[520px] flex-col justify-between overflow-hidden bg-[#172039] px-7 py-6 text-white sm:px-12 lg:min-h-0 lg:h-screen lg:px-16 lg:py-8">
           {/* Atmosphere */}
           <div className="absolute -right-20 -top-16 h-64 w-64 rounded-full bg-[#13b8b0] opacity-30 blur-3xl" />
           <div className="absolute -bottom-24 -left-20 h-72 w-72 rounded-full bg-[#c7f76d] opacity-15 blur-3xl" />
@@ -40,11 +40,11 @@ export default function Login() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#c7f76d] text-[#172039] fade-up" style={{ animationDelay: "80ms" }}>
               <Code2 size={24} />
             </div>
-            <p className="mt-6 font-mono text-[10px] uppercase tracking-[.2em] text-[#13b8b0] fade-up" style={{ animationDelay: "160ms" }}>Private builder access</p>
+            <p className="auth-eyebrow mt-6 font-mono text-[10px] uppercase tracking-[.2em] text-[#13b8b0] fade-up" style={{ animationDelay: "160ms" }}>Private builder access</p>
             <h1 className="mt-3 max-w-lg font-display text-4xl font-semibold leading-[.9] tracking-[-.08em] sm:text-6xl fade-up" style={{ animationDelay: "240ms" }}>Build your next unfair advantage.</h1>
-            <p className="mt-4 max-w-md text-sm leading-7 text-white/65 fade-up" style={{ animationDelay: "320ms" }}>Sign in to access purchased source code, track manual payments, and leave verified reviews.</p>
+            <p className="auth-lede mt-4 max-w-md text-sm leading-7 text-white/65 fade-up" style={{ animationDelay: "320ms" }}>Sign in to access purchased source code, track manual payments, and leave verified reviews.</p>
 
-            <div className="mt-6 fade-up ml-24" style={{ animationDelay: "480ms" }}>
+            <div className="auth-orbit-slot mt-6 fade-up ml-24" style={{ animationDelay: "480ms" }}>
               <CodeOrbit />
             </div>
           </div>
