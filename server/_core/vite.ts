@@ -3,19 +3,36 @@ import fs from "fs";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
 import path from "path";
-import { createServer as createViteServer } from "vite";
-import viteConfig from "../../vite.config";
 
+/**
+ * `vite` is imported lazily on purpose. A static import would make every
+ * runtime that loads this module — including the bundled serverless function,
+ * which never serves assets through Vite — pull in Rollup and its platform
+ * native binary, which is not installed in the serverless image and fails the
+ * whole function at cold start.
+ */
 export async function setupVite(app: Express, server: Server) {
+  const { createServer: createViteServer } = await import("vite");
+
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
     allowedHosts: true as const,
   };
 
+  // The config is read from disk by Vite itself rather than imported here. A
+  // static import would be inlined by the bundler, taking `vite` — and Rollup's
+  // platform native binary — into the serverless bundle, where it is not
+  // installed and takes the whole function down at cold start.
+  const configFile = path.resolve(
+    import.meta.dirname,
+    "..",
+    "..",
+    "vite.config.ts"
+  );
+
   const vite = await createViteServer({
-    ...viteConfig,
-    configFile: false,
+    configFile,
     server: serverOptions,
     appType: "custom",
   });
