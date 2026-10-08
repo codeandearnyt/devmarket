@@ -6,11 +6,13 @@ import { trpc } from "@/lib/trpc";
 import { useRealtime } from "@/hooks/useRealtime";
 import { money, typeLabel } from "./Home";
 import HeaderAvatar from "@/components/HeaderAvatar";
+import SiteHeader from "@/components/SiteHeader";
 import DevMarketIcon from "@/assets/dev-market-icon.png";
 import BlogAdminPanel from "@/components/BlogAdminPanel";
 import AdminInsightsPanel from "@/components/AdminInsightsPanel";
 import ReviewModerationPanel from "@/components/ReviewModerationPanel";
 import ProductImageDropzone from "@/components/ProductImageDropzone";
+import ProductForm, { emptyProductDraft, type ProductDraft } from "@/components/ProductForm";
 
 const statusStyles: Record<string, string> = { PENDING: "bg-[#fff4c6] text-[#8a6500]", DELIVERED: "bg-[#c7f76d] text-[#172039]", REJECTED: "bg-[#ffe0d7] text-[#a33e23]" };
 
@@ -39,16 +41,19 @@ export default function AdminDashboard() {
   const updateProduct = trpc.admin.updateProduct.useMutation({ onSuccess: () => { products.refetch(); setShowProductForm(false); setEditingProductId(null); } });
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
-  const [productDraft, setProductDraft] = useState({ title: "", slug: "", shortDescription: "", description: "", type: "PROJECT" as "SOURCE_CODE" | "PROMPT" | "PROJECT", categoryId: 0, price: 0, thumbnailUrl: "", fileUrl: "", previewImages: [] as string[] });
+  const [productDraft, setProductDraft] = useState<ProductDraft>(emptyProductDraft);
 
   if (!isAuthenticated || !isAdmin) {
     return (
-      <div className="liquid-page min-h-screen bg-[#eef8fa] px-5 py-12 text-[#172039]">
-        <div className="mx-auto max-w-xl rounded-[2rem] border border-[#d7e8eb] bg-[#f8ffff] p-9 text-center">
-          <ShieldCheck className="mx-auto text-[#13b8b0]" size={34} />
-          <h1 className="mt-5 font-display text-4xl font-semibold tracking-[-.06em]">Admin access only.</h1>
-          <p className="mt-3 text-[#53617d]">This command center is protected by role-based access control. Sign in with an admin account to continue.</p>
-          <Link href="/" className="mt-7 inline-flex rounded-full bg-[#172039] px-6 py-3.5 font-semibold text-white">Back to storefront</Link>
+      <div className="liquid-page min-h-screen bg-[#eef8fa] text-[#172039]">
+        <SiteHeader />
+        <div className="px-5 py-12">
+          <div className="mx-auto max-w-xl rounded-[2rem] border border-[#d7e8eb] bg-[#f8ffff] p-9 text-center">
+            <ShieldCheck className="mx-auto text-[#13b8b0]" size={34} />
+            <h1 className="mt-5 font-display text-4xl font-semibold tracking-[-.06em]">Admin access only.</h1>
+            <p className="mt-3 text-[#53617d]">This command center is protected by role-based access control. Sign in with an admin account to continue.</p>
+            <Link href="/login" className="mt-7 inline-flex rounded-full bg-[#172039] px-6 py-3.5 font-semibold text-white">Sign in to continue</Link>
+          </div>
         </div>
       </div>
     );
@@ -144,20 +149,32 @@ export default function AdminDashboard() {
           {tab === "products" && <>
             <div className="mb-6 flex items-center justify-between">
               <div><p className="font-mono text-[10px] uppercase tracking-[.16em] text-[#71809f]">Catalog</p><h2 className="mt-2 font-display text-2xl font-semibold tracking-[-.05em]">Products</h2></div>
-              <button onClick={() => { setShowProductForm(true); setEditingProductId(null); setProductDraft({ title: "", slug: "", shortDescription: "", description: "", type: "PROJECT", categoryId: 0, price: 0, thumbnailUrl: "", fileUrl: "", previewImages: [] }); }} className="btn inline-flex items-center rounded-full bg-[#172039] px-4 py-2.5 text-sm font-semibold text-white"><FolderPlus size={16} className="mr-2" /> Add product</button>
+              <button onClick={() => { setEditingProductId(null); setProductDraft(emptyProductDraft); setShowProductForm(true); }} className="btn inline-flex items-center rounded-full bg-[#172039] px-4 py-2.5 text-sm font-semibold text-white"><FolderPlus size={16} className="mr-2" /> Add product</button>
             </div>
-            {showProductForm && <ProductImageDropzone draft={productDraft} onChange={setProductDraft} onSubmit={editingProductId ? updateProduct : createProduct} onCancel={() => { setShowProductForm(false); setEditingProductId(null); }} />}
+            {showProductForm && (
+              <ProductForm
+                draft={productDraft}
+                categories={categories.data ?? []}
+                pending={createProduct.isPending || updateProduct.isPending}
+                submitLabel={editingProductId ? "Save changes" : "Create product"}
+                onChange={setProductDraft}
+                onSubmit={() => { if (editingProductId) updateProduct.mutate({ id: editingProductId, ...productDraft }); else createProduct.mutate(productDraft); }}
+                onCancel={() => { setShowProductForm(false); setEditingProductId(null); }}
+              />
+            )}
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {products.data?.map(product => (
                 <div key={product.id} className="rounded-2xl border border-[#d7e8eb] bg-[#f8ffff] p-5">
                   <div className="flex items-start justify-between">
                     <div><p className="font-mono text-[10px] uppercase tracking-[.16em] text-[#71809f]">{product.type}</p><h3 className="mt-2 font-display text-xl font-semibold tracking-[-.03em]">{product.title}</h3></div>
-                    <span className="rounded-full bg-[#e9f7f6] px-2.5 py-1 text-[10px] font-semibold">{product.status}</span>
+                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${product.isPublished ? "bg-[#c7f76d] text-[#172039]" : "bg-[#ffe0d7] text-[#a33e23]"}`}>
+                      {product.isPublished ? "Live" : "Draft"}
+                    </span>
                   </div>
                   <p className="mt-3 text-sm leading-6 text-[#53617d]">{product.shortDescription}</p>
                   <div className="mt-4 flex items-center justify-between border-t border-[#e9f7f6] pt-4">
                     <span className="font-display text-lg font-semibold">{money(product.price)}</span>
-                    <button onClick={() => { setEditingProductId(product.id); setProductDraft({ title: product.title, slug: product.slug, shortDescription: product.shortDescription, description: product.description, type: product.type, categoryId: product.categoryId, price: product.price, thumbnailUrl: product.thumbnailUrl, fileUrl: product.fileUrl, previewImages: product.previewImages }); setShowProductForm(true); }} className="text-sm font-semibold text-[#13b8b0]">Edit</button>
+                    <button onClick={() => { setEditingProductId(product.id); setProductDraft({ title: product.title, slug: product.slug, shortDescription: product.shortDescription, description: product.description, type: product.type, categoryId: product.categoryId, price: product.price, thumbnailUrl: product.thumbnailUrl, fileUrl: product.fileUrl, previewImages: (product.previewImages as string[] | null) ?? [] }); setShowProductForm(true); }} className="text-sm font-semibold text-[#13b8b0]">Edit</button>
                   </div>
                 </div>
               ))}
