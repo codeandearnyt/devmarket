@@ -183,6 +183,11 @@ export default function ProfilePage() {
     };
   }, [draft.username, editing]);
 
+  // Declared before the early return below: every hook must run on every
+  // render, otherwise resolving the session changes the hook count and React
+  // throws "Rendered more hooks than during the previous render".
+  const isDirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(toDraft(user, firebasePhoto)), [draft, user, firebasePhoto]);
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#eef8fa] text-[#172039]">
@@ -206,8 +211,6 @@ export default function ProfilePage() {
   }
 
   const set = <K extends keyof Draft>(key: K, value: string) => setDraft(prev => ({ ...prev, [key]: value }));
-
-  const isDirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(toDraft(user, firebasePhoto)), [draft, user, firebasePhoto]);
 
   function startEditing() {
     setDraft(toDraft(user, firebasePhoto));
