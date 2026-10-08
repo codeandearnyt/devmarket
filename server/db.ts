@@ -20,7 +20,25 @@ let _db: ReturnType<typeof drizzle> | null = null;
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      const client = postgres(process.env.DATABASE_URL);
+      const client = postgres(process.env.DATABASE_URL, {
+        /**
+         * Tuned for Supabase's pooler on serverless.
+         *
+         * Without these, a function that has been idle for a minute can hand
+         * back a socket the pooler already closed, and the next query fails
+         * with a connection error even though the database is healthy. One
+         * connection per instance plus an aggressive idle timeout means we
+         * recycle before the pooler can drop us, rather than retrying after.
+         */
+        max: 1,
+        idle_timeout: 20,
+        max_lifetime: 60 * 30,
+        connect_timeout: 10,
+        // Supabase's transaction-mode pooler cannot keep server-side prepared
+        // statements alive across connections.
+        prepare: false,
+        onnotice: () => {},
+      });
       _db = drizzle(client);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
@@ -28,6 +46,34 @@ export async function getDb() {
     }
   }
   return _db;
+}
+
+/**
+ * Run a query, retrying once if the pooled connection turns out to be dead.
+ *
+ * A cold or recycled serverless instance occasionally keeps a socket that the
+ * database has already closed. One transparent retry turns that transient
+ * blip into a normal result instead of a 500 for the user.
+ */
+export async function withDbRetry<T>(operation: (db: NonNullable<Awaited<ReturnType<typeof getDb>>>) => Promise<T>): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const db = await getDb();
+    if (!db) throw new Error("Database is not configured");
+    try {
+      return await operation(db);
+    } catch (error) {
+      lastError = error;
+      // Only connection-level faults are worth a second attempt.
+      const message = error instanceof Error ? error.message : String(error);
+      const isConnectionError = /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|Connection terminated|terminating connection|server closed the connection|Client has encountered a connection error/i.test(message);
+      if (!isConnectionError) throw error;
+      console.warn("[Database] Retrying after connection error:", message);
+      // Drop the cached client so the retry opens a fresh socket.
+      _db = null;
+    }
+  }
+  throw lastError;
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -91,50 +137,48 @@ export async function upsertFirebaseUser(profile: {
   photoUrl?: string | null;
   provider?: string | null;
 }) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
-
   const email = profile.email?.trim().toLowerCase() || null;
   const openId = firebaseOpenId(profile.uid);
 
-  let existing = await getUserByFirebaseUid(profile.uid);
+  return withDbRetry(async db => {
+    let existing = (await db.select().from(users).where(eq(users.firebaseUid, profile.uid)).limit(1))[0];
 
-  // Same person previously signed up with email/password: adopt that row so
-  // their orders and reviews survive the switch to Google sign-in.
-  if (!existing && email) {
-    const byEmail = await getUserByEmail(email);
-    if (byEmail) existing = byEmail;
-  }
+    // Same person previously signed up with email/password: adopt that row so
+    // their orders and reviews survive the switch to Google sign-in.
+    if (!existing && email) {
+      const byEmail = (await db.select().from(users).where(eq(users.email, email)).limit(1))[0];
+      if (byEmail) existing = byEmail;
+    }
 
-  if (existing) {
-    await db
-      .update(users)
-      .set({
-        firebaseUid: profile.uid,
-        name: profile.name ?? existing.name ?? null,
-        email: email ?? existing.email ?? null,
-        photoUrl: profile.photoUrl ?? existing.photoUrl ?? null,
-        loginMethod: profile.provider ?? "google",
-        lastSignedIn: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, existing.id));
-    const refreshed = await db.select().from(users).where(eq(users.id, existing.id)).limit(1);
-    return refreshed[0];
-  }
+    if (existing) {
+      await db
+        .update(users)
+        .set({
+          firebaseUid: profile.uid,
+          name: profile.name ?? existing.name ?? null,
+          email: email ?? existing.email ?? null,
+          photoUrl: profile.photoUrl ?? existing.photoUrl ?? null,
+          loginMethod: profile.provider ?? "google",
+          lastSignedIn: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, existing.id));
+      return (await db.select().from(users).where(eq(users.id, existing.id)).limit(1))[0];
+    }
 
-  await db.insert(users).values({
-    openId,
-    firebaseUid: profile.uid,
-    name: profile.name ?? null,
-    email,
-    photoUrl: profile.photoUrl ?? null,
-    loginMethod: profile.provider ?? "google",
-    role: openId === ENV.ownerOpenId ? "admin" : "user",
-    lastSignedIn: new Date(),
+    await db.insert(users).values({
+      openId,
+      firebaseUid: profile.uid,
+      name: profile.name ?? null,
+      email,
+      photoUrl: profile.photoUrl ?? null,
+      loginMethod: profile.provider ?? "google",
+      role: openId === ENV.ownerOpenId ? "admin" : "user",
+      lastSignedIn: new Date(),
+    });
+
+    return (await db.select().from(users).where(eq(users.firebaseUid, profile.uid)).limit(1))[0];
   });
-
-  return getUserByFirebaseUid(profile.uid);
 }
 
 export async function getUserByOpenId(openId: string) {
@@ -171,32 +215,30 @@ export type ProfilePatch = {
  * `users.name` column never drift from what the profile page shows.
  */
 export async function updateUserProfile(userId: number, patch: ProfilePatch) {
-  const db = await getDb();
-  if (!db) throw new Error("Database is not configured");
+  return withDbRetry(async db => {
+    const [current] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!current) throw new Error("Account not found");
 
-  const [current] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  if (!current) throw new Error("Account not found");
+    const set: Record<string, unknown> = {};
 
-  const set: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(patch)) {
+      if (value === undefined) continue;
+      set[key] = value === "" ? null : value;
+    }
 
-  for (const [key, value] of Object.entries(patch)) {
-    if (value === undefined) continue;
-    set[key] = value === "" ? null : value;
-  }
+    // Recompute the display name whenever either half of it changed.
+    if (patch.firstName !== undefined || patch.lastName !== undefined) {
+      const first = patch.firstName === undefined ? (current.firstName ?? "") : (patch.firstName ?? "");
+      const last = patch.lastName === undefined ? (current.lastName ?? "") : (patch.lastName ?? "");
+      const combined = `${first} ${last}`.trim();
+      set.name = combined || null;
+    }
 
-  // Recompute the display name whenever either half of it changed.
-  if (patch.firstName !== undefined || patch.lastName !== undefined) {
-    const first = patch.firstName === undefined ? (current.firstName ?? "") : (patch.firstName ?? "");
-    const last = patch.lastName === undefined ? (current.lastName ?? "") : (patch.lastName ?? "");
-    const combined = `${first} ${last}`.trim();
-    set.name = combined || null;
-  }
+    set.updatedAt = new Date();
+    await db.update(users).set(set).where(eq(users.id, userId));
 
-  set.updatedAt = new Date();
-  await db.update(users).set(set).where(eq(users.id, userId));
-
-  const [refreshed] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
-  return refreshed;
+    return (await db.select().from(users).where(eq(users.id, userId)).limit(1))[0];
+  });
 }
 
 /** Usernames are a public handle, so uniqueness is checked before saving. */
