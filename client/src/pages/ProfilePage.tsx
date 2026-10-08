@@ -1,7 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { updateProfile } from "firebase/auth";
+import { ArrowLeft } from "lucide-react";
+import DevMarketIcon from "@/assets/dev-market-icon.png";
+import HeaderAvatar from "@/components/HeaderAvatar";
 
 export default function ProfilePage() {
   const { user, firebaseUser, logout } = useAuth();
@@ -64,13 +67,26 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#eef8fa] p-6 lg:p-12">
-      <header className="mb-8">
-        <h1 className="font-display text-3xl font-semibold tracking-[-.05em] text-[#172039]">
-          {editing ? "Edit profile" : "My profile"}
-        </h1>
-        {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
+    <div className="min-h-screen bg-[#eef8fa]">
+      <header className="site-header">
+        <div className="site-nav-pill mx-auto flex max-w-[1080px] items-center justify-between px-4 py-3 lg:px-5">
+          <Link href="/" className="flex items-center gap-3">
+            <img src={DevMarketIcon} alt="DevMarket" className="h-9 w-9 rounded-lg object-contain" />
+            <span className="font-display text-xl font-bold tracking-[-.05em]">dev<span className="text-[#13b8b0]">market</span></span>
+          </Link>
+          <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-[#53617d] transition hover:text-[#13b8b0]">
+            <ArrowLeft size={15} /> Back to marketplace
+          </Link>
+          <HeaderAvatar />
+        </div>
       </header>
+      <main className="p-6 lg:p-12">
+        <header className="mb-8">
+          <h1 className="font-display text-3xl font-semibold tracking-[-.05em] text-[#172039]">
+            {editing ? "Edit profile" : "My profile"}
+          </h1>
+          {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
+        </header>
 
       {editing ? (
         <form className="space-y-6 max-w-xl" onSubmit={e => { e.preventDefault(); handleSave(); }}>
@@ -185,6 +201,7 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+      </main>
     </div>
   );
 }
