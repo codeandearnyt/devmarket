@@ -1,5 +1,10 @@
 export const ENV = {
-  appId: process.env.VITE_APP_ID ?? "",
+  /**
+   * Scopes session tokens to this app. It is carried in the JWT but never used
+   * for authorization, so it falls back to a stable value rather than an empty
+   * string — an unset env var must not be able to invalidate every session.
+   */
+  appId: process.env.VITE_APP_ID || "devmarket",
   cookieSecret: process.env.JWT_SECRET ?? "",
   databaseUrl: process.env.DATABASE_URL ?? "",
   oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
