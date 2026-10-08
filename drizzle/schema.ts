@@ -19,9 +19,11 @@ const blogStatusEnum = pgEnum("status", ["DRAFT", "PUBLISHED"]);
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
+  firebaseUid: varchar("firebaseUid", { length: 128 }).unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
   passwordHash: text("passwordHash"),
+  photoUrl: text("photoUrl"),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: roleEnum("role").default("user").notNull(),
   isDisabled: boolean("isDisabled").default(false).notNull(),

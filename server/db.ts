@@ -36,7 +36,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   if (!db) return;
   const values: InsertUser = { openId: user.openId };
   const updateSet: Record<string, unknown> = {};
-  (['name', 'email', 'loginMethod', 'passwordHash'] as const).forEach(field => {
+  (['name', 'email', 'loginMethod', 'passwordHash', 'photoUrl', 'firebaseUid'] as const).forEach(field => {
     if (user[field] !== undefined) {
       values[field] = user[field] ?? null;
       updateSet[field] = user[field] ?? null;
@@ -52,6 +52,89 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     updateSet.role = 'admin';
   }
   await db.insert(users).values(values).onConflictDoUpdate({ target: users.openId, set: updateSet });
+}
+
+// ---------------------------------------------------------------------------
+// Firebase-authenticated users
+// ---------------------------------------------------------------------------
+
+/**
+ * Derive a stable `openId` from a Firebase UID.
+ *
+ * The column is `varchar(64)`, and Firebase UIDs are 28 chars, so a prefixed
+ * UID fits comfortably. Keeping the derivation in one place means adding a
+ * second identity provider later cannot silently collide with this one.
+ */
+export function firebaseOpenId(uid: string) {
+  const value = `firebase_${uid}`;
+  if (value.length <= 64) return value;
+  // Defensive: if a future provider issues longer ids, fall back to a digest.
+  return value.slice(0, 64);
+}
+
+export async function getUserByFirebaseUid(uid: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.firebaseUid, uid)).limit(1);
+  return result[0];
+}
+
+/**
+ * Find or create the local user row for a verified Firebase identity, keeping
+ * the profile fields (name, email, photo) in step with the provider on every
+ * login. Links an existing email-only account rather than creating a duplicate.
+ */
+export async function upsertFirebaseUser(profile: {
+  uid: string;
+  email?: string | null;
+  name?: string | null;
+  photoUrl?: string | null;
+  provider?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+
+  const email = profile.email?.trim().toLowerCase() || null;
+  const openId = firebaseOpenId(profile.uid);
+
+  let existing = await getUserByFirebaseUid(profile.uid);
+
+  // Same person previously signed up with email/password: adopt that row so
+  // their orders and reviews survive the switch to Google sign-in.
+  if (!existing && email) {
+    const byEmail = await getUserByEmail(email);
+    if (byEmail) existing = byEmail;
+  }
+
+  if (existing) {
+    await db
+      .update(users)
+      .set({
+        firebaseUid: profile.uid,
+        name: profile.name ?? existing.name ?? null,
+        email: email ?? existing.email ?? null,
+        photoUrl: profile.photoUrl ?? existing.photoUrl ?? null,
+        loginMethod: profile.provider ?? "google",
+        lastSignedIn: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, existing.id));
+    const refreshed = await db.select().from(users).where(eq(users.id, existing.id)).limit(1);
+    return refreshed[0];
+  }
+
+  await db.insert(users).values({
+    openId,
+    firebaseUid: profile.uid,
+    name: profile.name ?? null,
+    email,
+    photoUrl: profile.photoUrl ?? null,
+    loginMethod: profile.provider ?? "google",
+    role: openId === ENV.ownerOpenId ? "admin" : "user",
+    lastSignedIn: new Date(),
+  });
+
+  return getUserByFirebaseUid(profile.uid);
 }
 
 export async function getUserByOpenId(openId: string) {

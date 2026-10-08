@@ -289,6 +289,14 @@ class SDKServer {
     const signedInAt = new Date();
     let user = await db.getUserByOpenId(sessionUserId);
 
+    // Firebase-backed identities are fully managed by our own flow: the row is
+    // upserted at token-exchange time, so there is nothing to sync from the
+    // legacy OAuth server and we must not call it.
+    if (user && sessionUserId.startsWith(FIREBASE_OPEN_ID_PREFIX)) {
+      await db.upsertUser({ openId: user.openId, lastSignedIn: signedInAt });
+      return user;
+    }
+
     // If user not in DB, sync from OAuth server automatically
     if (!user) {
       try {
@@ -321,6 +329,9 @@ class SDKServer {
 }
 
 const CRON_OPEN_ID_PREFIX = "cron_";
+
+/** Local accounts backed by a Firebase identity; see `firebaseOpenId` in `../db`. */
+const FIREBASE_OPEN_ID_PREFIX = "firebase_";
 
 /** Result of `sdk.authenticateRequest`. Cron callbacks set `isCron=true` and `taskUid`; see `/home/ubuntu/skills/webdev-periodic-updates/SKILL.md`. */
 export type AuthenticatedUser = User & {

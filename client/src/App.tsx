@@ -18,6 +18,7 @@ const ProductDetails = lazy(() => import("./pages/Checkout").then(module => ({ d
 const Developer = lazy(() => import("./pages/Developer"));
 const InfoPage = lazy(() => import("./pages/InfoPage"));
 const Login = lazy(() => import("./pages/Login"));
+const Profile = lazy(() => import("./pages/Profile"));
 
 function RouteFallback() {
   return (
@@ -44,6 +45,7 @@ function Router() {
     <Route path="/terms" component={InfoPage} />
     <Route path="/contact" component={InfoPage} />
     <Route path="/login" component={Login} />
+    <Route path="/profile" component={Profile} />
     <Route path="/admin" component={AdminDashboard} />
     <Route path="/404" component={NotFound} />
     <Route component={NotFound} />

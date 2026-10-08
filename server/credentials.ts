@@ -2,7 +2,8 @@ import crypto from "node:crypto";
 import { ONE_YEAR_MS } from "@shared/const";
 import { ENV } from "./_core/env";
 import { sdk } from "./_core/sdk";
-import { createCredentialUser, getUserByEmail, getUserByOpenId, upsertUser } from "./db";
+import { verifyFirebaseIdToken } from "./_core/firebase";
+import { createCredentialUser, getUserByEmail, getUserByOpenId, upsertUser, upsertFirebaseUser } from "./db";
 
 const SCRYPT_N = 16_384;
 const SCRYPT_R = 8;
@@ -52,4 +53,34 @@ export async function authenticateCredentialUser(email: string, password: string
 
 export async function createCredentialSession(user: { openId: string; name: string | null }) {
   return sdk.signSession({ openId: user.openId, appId: ENV.appId, name: user.name ?? "" }, { expiresInMs: ONE_YEAR_MS });
+}
+
+/**
+ * Exchange a client-issued Firebase ID token for a local DevMarket user row.
+ *
+ * The token is verified against Google's public keys and the project id, so it
+ * cannot be forged by the client. The Firebase UID becomes the account key, and
+ * the profile fields are mirrored into Supabase on every sign-in.
+ */
+export async function authenticateFirebaseUser(idToken: string) {
+  const decoded = await verifyFirebaseIdToken(idToken);
+  if (!decoded) throw new Error("Could not verify your sign-in. Please try again.");
+
+  const provider =
+    (decoded.firebase?.sign_in_provider as string | undefined) === "google.com"
+      ? "google"
+      : (decoded.firebase?.sign_in_provider as string | undefined)?.replace(/\.com$/, "") ?? "firebase";
+
+  const user = await upsertFirebaseUser({
+    uid: decoded.user_id ?? decoded.sub!,
+    email: decoded.email ?? null,
+    name: decoded.name ?? null,
+    photoUrl: decoded.picture ?? null,
+    provider,
+  });
+
+  if (!user) throw new Error("Could not create your DevMarket account");
+  if (user.isDisabled) throw new Error("This account has been disabled");
+
+  return user;
 }

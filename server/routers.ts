@@ -41,7 +41,7 @@ import {
 import { sendDeliveryEmail } from "./email";
 import { storagePut } from "./storage";
 import { publishRealtime } from "./realtime";
-import { authenticateCredentialUser, createCredentialSession, registerCredentialUser } from "./credentials";
+import { authenticateFirebaseUser, createCredentialSession } from "./credentials";
 
 const productInput = z.object({
   title: z.string().min(3).max(220), slug: z.string().min(3).max(240), description: z.string().min(10), shortDescription: z.string().min(5).max(320),
@@ -72,7 +72,7 @@ const uploadDataUrl = async (dataUrl: string, prefix: string) => {
 
 const publicUser = (user: User | null | undefined) => {
   if (!user) return null;
-  const { passwordHash: _passwordHash, ...safeUser } = user;
+  const { passwordHash: _passwordHash, firebaseUid: _firebaseUid, ...safeUser } = user;
   return safeUser;
 };
 
@@ -87,19 +87,27 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => publicUser(opts.ctx.user)),
-    register: publicProcedure.input(z.object({ email: z.string().email().max(320), name: z.string().trim().min(2).max(160), password: z.string().min(8).max(128) })).mutation(async ({ ctx, input }) => {
-      const user = await registerCredentialUser(input.email, input.name, input.password);
-      const token = await createCredentialSession(user);
-      ctx.res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: 365 * 24 * 60 * 60 * 1000 });
-      return publicUser(user);
-    }),
-    login: publicProcedure.input(z.object({ email: z.string().email().max(320), password: z.string().min(8).max(128) })).mutation(async ({ ctx, input }) => {
-      const user = await authenticateCredentialUser(input.email, input.password);
-      if (!user) throw new Error("Invalid email or password");
-      const token = await createCredentialSession(user);
-      ctx.res.cookie(COOKIE_NAME, token, { ...getSessionCookieOptions(ctx.req), maxAge: 365 * 24 * 60 * 60 * 1000 });
-      return publicUser(user);
-    }),
+
+    /**
+     * Exchange a client-issued Firebase ID token for a DevMarket session cookie.
+     *
+     * The client signs in with the Firebase Web SDK (Google popup or
+     * email/password), then posts the resulting ID token here. The token is
+     * verified server-side against Google's public keys, the user row is
+     * upserted into Supabase, and an httpOnly session cookie is issued.
+     */
+    session: publicProcedure
+      .input(z.object({ idToken: z.string().min(20).max(4096) }))
+      .mutation(async ({ ctx, input }) => {
+        const user = await authenticateFirebaseUser(input.idToken);
+        const token = await createCredentialSession(user);
+        ctx.res.cookie(COOKIE_NAME, token, {
+          ...getSessionCookieOptions(ctx.req),
+          maxAge: 365 * 24 * 60 * 60 * 1000,
+        });
+        return publicUser(user);
+      }),
+
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });

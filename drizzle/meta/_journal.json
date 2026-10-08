@@ -8,6 +8,13 @@
       "when": 1791286501863,
       "tag": "0000_blushing_triathlon",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791392604600,
+      "tag": "0001_cute_tyger_tiger",
+      "breakpoints": true
     }
   ]
 }
