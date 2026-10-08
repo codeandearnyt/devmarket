@@ -37,7 +37,8 @@ export default function ProfilePage() {
     try {
       // Update Firebase auth display name
       if (firebaseUser && form.displayName.trim()) {
-        await firebaseUser.updateDisplayName(form.displayName.trim());
+        const { updateProfile } = await import("firebase/auth");
+        await updateProfile(firebaseUser, { displayName: form.displayName.trim() });
       }
       // TODO: call Supabase backend to update profile
       // For now, just update local state and navigate
