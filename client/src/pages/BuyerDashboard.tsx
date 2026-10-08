@@ -5,6 +5,7 @@ import { trpc } from "@/lib/trpc";
 import { useRealtime } from "@/hooks/useRealtime";
 import { money, typeLabel } from "./Home";
 import HeaderAvatar from "@/components/HeaderAvatar";
+import DevMarketIcon from "@/assets/dev-market-icon.png";
 
 const statusStyles: Record<string, string> = { PENDING: "bg-[#fff4c6] text-[#8a6500]", PAID: "bg-[#e7f5c8] text-[#427018]", DELIVERED: "bg-[#c7f76d] text-[#172039]", REJECTED: "bg-[#ffe0d7] text-[#a33e23]", FAILED: "bg-[#ffe0d7] text-[#a33e23]" };
 const statusLabel: Record<string, string> = { PENDING: "Pending review", PAID: "Paid", DELIVERED: "Delivered", REJECTED: "Rejected", FAILED: "Payment failed" };
@@ -32,7 +33,18 @@ export default function BuyerDashboard() {
   return (
     <div className="liquid-page min-h-screen bg-[#eef8fa] px-5 py-7 text-[#172039]">
       <div className="mx-auto max-w-[1180px]">
-        <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-[#53617d]"><ArrowLeft size={16} /> Back to marketplace</Link>
+        <header className="site-header mb-6">
+          <div className="site-nav-pill mx-auto flex max-w-[1080px] items-center justify-between px-4 py-3 lg:px-5">
+            <Link href="/" className="flex items-center gap-3">
+              <img src={DevMarketIcon} alt="DevMarket" className="h-9 w-9 rounded-lg object-contain" />
+              <span className="font-display text-xl font-bold tracking-[-.05em]">dev<span className="text-[#13b8b0]">market</span></span>
+            </Link>
+            <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-[#53617d] transition hover:text-[#13b8b0]">
+              <ArrowLeft size={15} /> Back to marketplace
+            </Link>
+            <HeaderAvatar />
+          </div>
+        </header>
         <div className="mt-10 flex flex-col justify-between gap-6 border-b border-[#d7e8eb] pb-8 md:flex-row md:items-end">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[.2em] text-[#13b8b0]">Buyer dashboard</p>

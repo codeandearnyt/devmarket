@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import ScrollDepthBackground from "@/components/ScrollDepthBackground";
 import { useEffect, useState } from "react";
 import SiteFooter from "@/components/SiteFooter";
+import DevMarketIcon from "@/assets/dev-market-icon.png";
 
 const skills = [
   { icon: <Workflow size={20} />, title: "Automated works", copy: "Designing repeatable workflows that connect tools, APIs, agents, and people so useful work keeps moving with less manual effort." },
@@ -33,7 +34,7 @@ export default function Developer() {
   return <div className="liquid-page min-h-screen overflow-hidden bg-[#eef8fa] text-[#172039]"><ScrollDepthBackground />
     <header className="site-header">
       <div className="site-nav-pill mx-auto flex max-w-[1080px] items-center justify-between px-4 py-3 lg:px-5">
-        <Link href="/" className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#172039] text-[#c7f76d]"><Code2 size={18} /></span><span className="font-display text-xl font-bold tracking-[-.05em]">dev<span className="text-[#13b8b0]">market</span></span></Link>
+        <Link href="/" className="flex items-center gap-3"><img src={DevMarketIcon} alt="DevMarket" className="h-9 w-9 rounded-xl object-contain" /><span className="font-display text-xl font-bold tracking-[-.05em]">dev<span className="text-[#13b8b0]">market</span></span></Link>
         <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-[#53617d] transition hover:text-[#13b8b0]"><ArrowLeft size={15} /> Back to marketplace</Link>
       </div>
     </header>

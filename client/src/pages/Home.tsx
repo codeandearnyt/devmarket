@@ -9,6 +9,7 @@ import ScrollDepthBackground from "@/components/ScrollDepthBackground";
 import SiteFooter from "@/components/SiteFooter";
 import TechnologiesSection from "@/components/TechnologiesSection";
 import HeaderAvatar from "@/components/HeaderAvatar";
+import DevMarketIcon from "@/assets/dev-market-icon.png";
 
 export type ProductCardData = { id: number; title: string; slug: string; type: string; shortDescription: string; description: string; price: number; discountPrice: number | null; thumbnailUrl: string; techStack?: string[]; salesCount: number; categoryId?: number; fileUrl?: string; isFeatured?: boolean };
 
@@ -47,7 +48,7 @@ function Header({ live = false }: { live?: boolean }) {
   }, []);
   return <header className={`site-header ${hidden ? "site-header-hidden" : ""}`}>
     <div className="site-nav-pill mx-auto flex max-w-[1080px] items-center justify-between px-4 py-3 lg:px-5">
-      <Link href="/"><div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#172039] text-[#c7f76d]"><Code2 size={18} /></div><span className="font-display text-xl font-bold tracking-[-.05em]">dev<span className="text-[#13b8b0]">market</span></span></div></Link>
+      <Link href="/"><div className="flex items-center gap-3"><img src={DevMarketIcon} alt="DevMarket" className="h-9 w-9 rounded-lg object-contain" /><span className="font-display text-xl font-bold tracking-[-.05em]">dev<span className="text-[#13b8b0]">market</span></span></div></Link>
       <nav className="hidden items-center gap-8 text-sm font-medium text-[#53617d] md:flex"><a href="#explore" className="transition hover:text-[#172039]">Explore</a><a href="#how-it-works" className="transition hover:text-[#172039]">How it works</a><Link href="/blog" className="transition hover:text-[#172039]">Blog</Link><Link href="/dashboard" className="transition hover:text-[#172039]">My library</Link><span className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.14em] text-[#71809f]"><span className={`h-1.5 w-1.5 rounded-full ${live ? "bg-[#527f1e]" : "bg-[#b9d6db]"}`} />{live ? "Live" : "Syncing"}</span></nav>
       <div className="hidden items-center gap-3 md:flex">{isAuthenticated ? <HeaderAvatar /> : <><Link href="/login" className="btn rounded-full border border-[#d7e8eb] px-4 py-2 text-sm font-semibold">Sign in</Link><Link href="/login" className="btn rounded-full bg-[#172039] px-4 py-2 text-sm font-semibold text-white hover:bg-[#13b8b0]">Start building <ArrowRight className="ml-1 inline" size={15} /></Link></>}</div>
       <button aria-label="Toggle menu" className="rounded-xl p-2 md:hidden" onClick={() => setOpen(v => !v)}>{open ? <X /> : <span className="flex w-5 flex-col gap-1.5"><span className="h-0.5 w-5 rounded-full bg-[#172039]" /><span className="h-0.5 w-5 rounded-full bg-[#172039]" /></span>}</button>

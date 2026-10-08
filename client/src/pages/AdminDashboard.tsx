@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc";
 import { useRealtime } from "@/hooks/useRealtime";
 import { money, typeLabel } from "./Home";
 import HeaderAvatar from "@/components/HeaderAvatar";
+import DevMarketIcon from "@/assets/dev-market-icon.png";
 import BlogAdminPanel from "@/components/BlogAdminPanel";
 import AdminInsightsPanel from "@/components/AdminInsightsPanel";
 import ReviewModerationPanel from "@/components/ReviewModerationPanel";
@@ -69,8 +70,9 @@ export default function AdminDashboard() {
       <div className="flex min-h-screen flex-col lg:flex-row">
         <aside className="admin-glass-nav border-b border-[#d7e8eb] bg-[#172039] text-white lg:min-h-screen lg:w-72 lg:border-b-0 lg:border-r lg:border-[#172039]">
           <div className="flex items-center justify-between px-6 py-6 lg:block">
-            <Link href="/" className="font-display text-xl font-bold tracking-[-.05em]">
-              dev<span className="text-[#13b8b0]">market</span>
+            <Link href="/" className="flex items-center gap-3">
+              <img src={DevMarketIcon} alt="DevMarket" className="h-9 w-9 rounded-xl object-contain" />
+              <span className="font-display text-xl font-bold tracking-[-.05em]">dev<span className="text-[#13b8b0]">market</span></span>
               <span className="ml-2 rounded-full bg-[#c7f76d] px-2 py-1 font-mono text-[8px] uppercase tracking-[.12em] text-[#172039]">admin</span>
             </Link>
             <span className="hidden font-mono text-[10px] text-white/45 lg:mt-2 lg:block">COMMAND CENTER / 01</span>
