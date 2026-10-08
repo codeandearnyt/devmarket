@@ -1,5 +1,6 @@
-import { ArrowUpRight, Code2 } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { Link } from "wouter";
+import DevMarketIcon from "@/assets/dev-market-icon.png";
 
 const primaryLinks = [
   ["Explore", "/#explore"],
@@ -20,8 +21,8 @@ export default function SiteFooter() {
     <div className="mx-auto max-w-[1280px]">
       <div className="grid gap-10 md:grid-cols-[1.25fr_.75fr_.75fr]">
         <div>
-          <Link href="/" className="inline-flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#172039] text-[#c7f76d]"><Code2 size={19} /></span>
+          <Link href="/" className="inline-flex items-center gap-3" aria-label="DevMarket home">
+            <img src={DevMarketIcon} alt="DevMarket" className="h-10 w-10 rounded-xl object-contain" />
             <span className="font-display text-2xl font-bold tracking-[-.06em]">dev<span className="text-[#13b8b0]">market</span></span>
           </Link>
           <p className="mt-5 max-w-sm text-sm leading-7 text-[#53617d]">Production-ready code, high-signal AI prompts, and practical ideas for people who build.</p>

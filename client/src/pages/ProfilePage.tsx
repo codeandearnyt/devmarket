@@ -3,10 +3,10 @@ import { Link } from "wouter";
 import {
   AlertTriangle,
   AtSign,
-  Camera,
   Check,
   Globe,
   Github,
+  Image as ImageIcon,
   KeyRound,
   Link2,
   Linkedin,
@@ -27,6 +27,10 @@ import { trpc } from "@/lib/trpc";
 import { getFirebaseAuth } from "@/lib/firebase";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import GoogleMark from "@/components/GoogleMark";
+
+/** Where the avatar image comes from. */
+type AvatarSource = "google" | "manual";
 
 type Draft = {
   firstName: string;
@@ -38,6 +42,7 @@ type Draft = {
   github: string;
   linkedin: string;
   photoUrl: string;
+  avatarSource: AvatarSource;
 };
 
 const emptyDraft: Draft = {
@@ -50,11 +55,49 @@ const emptyDraft: Draft = {
   github: "",
   linkedin: "",
   photoUrl: "",
+  avatarSource: "google",
 };
 
 const BIO_LIMIT = 500;
 
-function toDraft(user: ReturnType<typeof useAuth>["user"], photoFallback: string): Draft {
+/**
+ * Google-hosted avatars live on `*.googleusercontent.com`.
+ *
+ * We keep recognising them rather than treating them as ordinary images: the
+ * URL is provider-owned, changes when Google rotates it, and must never be
+ * shown as a pasteable link. Any URL matching this is reported as "Gmail"
+ * instead of "Manual".
+ */
+const GOOGLE_PHOTO_HOST = /googleusercontent\.com/i;
+
+function isGooglePhotoUrl(url: string | null | undefined): boolean {
+  return Boolean(url && GOOGLE_PHOTO_HOST.test(url));
+}
+
+/** The account's Google avatar, taken from the live session or the stored row. */
+function googlePhotoUrl(user: ReturnType<typeof useAuth>["user"], livePhoto: string): string {
+  if (livePhoto) return livePhoto;
+  const stored = user?.photoUrl?.trim();
+  // `?? ""` because a guard-function call does not narrow `string | undefined`.
+  return isGooglePhotoUrl(stored) ? stored ?? "" : "";
+}
+
+/**
+ * The avatar URL the *member* chose, or null when there isn't one.
+ *
+ * Google-hosted pictures deliberately return null here — they belong to the
+ * "Gmail" source, so the raw CDN link never appears in the Manual field.
+ * The brand mark is our own placeholder, not a user-chosen image.
+ */
+function storedPhotoUrl(user: ReturnType<typeof useAuth>["user"]): string | null {
+  const url = user?.photoUrl?.trim();
+  if (!url || url.includes("dev-market-icon")) return null;
+  if (isGooglePhotoUrl(url)) return null;
+  return url;
+}
+
+function toDraft(user: ReturnType<typeof useAuth>["user"], googlePhoto: string): Draft {
+  const stored = storedPhotoUrl(user);
   return {
     firstName: user?.firstName ?? "",
     lastName: user?.lastName ?? "",
@@ -64,7 +107,12 @@ function toDraft(user: ReturnType<typeof useAuth>["user"], photoFallback: string
     website: user?.website ?? "",
     github: user?.github ?? "",
     linkedin: user?.linkedin ?? "",
-    photoUrl: user?.photoUrl ?? photoFallback ?? "/assets/dev-market-icon.png",
+    // Never seeded from `googlePhoto`: that URL belongs to the Gmail source
+    // and is deliberately never surfaced as editable text.
+    photoUrl: stored ?? "",
+    // Follow the Google photo when one exists, so Gmail accounts default to
+    // their own picture; everyone else starts on Manual.
+    avatarSource: stored ? "manual" : googlePhoto ? "google" : "manual",
   };
 }
 
@@ -141,8 +189,28 @@ export default function ProfilePage() {
     { enabled: editing && draft.username.trim().length >= 3 && usernameState !== "taken" }
   );
 
-  const firebasePhoto = firebaseUser?.photoURL || "";
-  const displayPhoto = editing ? draft.photoUrl || "/assets/dev-market-icon.png" : user?.photoUrl || firebasePhoto || "/assets/dev-market-icon.png";
+  const googlePhoto = googlePhotoUrl(user, firebaseUser?.photoURL || "");
+  const hasGooglePhoto = Boolean(googlePhoto);
+  /** Same value, under the name the draft helpers take. */
+  const firebasePhoto = googlePhoto;
+
+  // "google.com" is what Firebase reports for Google accounts; our own rows
+  // store a normalised "google".
+  const rawSignIn = user?.loginMethod || firebaseUser?.providerId || "";
+  const isGoogleAccount = /google/i.test(rawSignIn);
+  const signInLabel = rawSignIn ? rawSignIn.replace(/\.com$/i, "") : "—";
+
+  /**
+   * Which image to show right now.
+   *
+   * `google` resolves to the Google photo when there is one, falling back to
+   * the brand mark — and never surfaces Google's CDN URL anywhere in the UI.
+   */
+  const displayPhoto = (() => {
+    const source = editing ? draft.avatarSource : storedPhotoUrl(user) ? "manual" : hasGooglePhoto ? "google" : "manual";
+    if (source === "google") return googlePhoto || "/assets/dev-market-icon.png";
+    return (editing ? draft.photoUrl : storedPhotoUrl(user)) || googlePhoto || "/assets/dev-market-icon.png";
+  })();
 
   const displayName = useMemo(() => {
     const combined = `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim();
@@ -248,7 +316,9 @@ export default function ProfilePage() {
         website: draft.website.trim(),
         github: draft.github.trim(),
         linkedin: draft.linkedin.trim(),
-        photoUrl: draft.photoUrl.trim(),
+        // "Gmail" keeps the account's Google picture in sync; it is never
+        // written into the Manual field, so the CDN link stays out of the UI.
+        photoUrl: draft.avatarSource === "google" ? googlePhoto : draft.photoUrl.trim(),
       });
 
       // Keep the shared session cache in step so the header avatar updates immediately.
@@ -340,22 +410,6 @@ export default function ProfilePage() {
                       />
                     )}
                   </div>
-                  {editing && (
-                    <label className="absolute -bottom-1 -right-1 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border-2 border-white bg-[#172039] text-[#c7f76d] shadow-lg transition hover:bg-[#13b8b0]" title="Paste an image URL below">
-                      <Camera size={16} />
-                      <input
-                        type="url"
-                        value={draft.photoUrl}
-                        onChange={event => {
-                          setAvatarError(null);
-                          set("photoUrl", event.target.value);
-                        }}
-                        placeholder="https://…"
-                        aria-label="Avatar image URL"
-                        className="sr-only"
-                      />
-                    </label>
-                  )}
                 </div>
 
                 <div className="min-w-0">
@@ -421,12 +475,17 @@ export default function ProfilePage() {
               {[
                 { label: "Purchases", value: statsQuery.data?.orders ?? "—" },
                 { label: "Member since", value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString("en-IN", { month: "short", year: "numeric" }) : "—" },
-                { label: "Sign-in method", value: user?.loginMethod ?? firebaseUser?.providerId ?? "—" },
+                { label: "Sign-in method", value: signInLabel },
                 { label: "Role", value: user?.role ?? "user" },
               ].map(stat => (
                 <div key={stat.label} className="glass rounded-2xl px-5 py-4">
                   <dt className="font-mono text-[9px] uppercase tracking-[.16em] text-[#71809f]">{stat.label}</dt>
-                  <dd className="mt-2 font-display text-xl font-semibold capitalize tracking-[-.03em]">{String(stat.value)}</dd>
+                  <dd className="mt-2 flex items-center gap-2 font-display text-xl font-semibold capitalize tracking-[-.03em]">
+                    {stat.label === "Sign-in method" && isGoogleAccount && (
+                      <GoogleMark size={17} className="shrink-0" />
+                    )}
+                    <span className="truncate">{String(stat.value)}</span>
+                  </dd>
                 </div>
               ))}
             </dl>
@@ -510,13 +569,81 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="sm:col-span-2">
-                    <Field label="Avatar image URL" hint={<span className="font-mono text-[10px] text-[#71809f]">PNG or JPG, square works best</span>}>
-                      <input value={draft.photoUrl} maxLength={1000} onChange={event => { setAvatarError(null); set("photoUrl", event.target.value); }} placeholder="https://example.com/me.jpg" className={inputClass} />
-                    </Field>
-                    {avatarError && (
-                      <p className="mt-2 flex items-center gap-1.5 text-xs text-[#a33e23]">
-                        <AlertTriangle size={13} /> That image could not be loaded. Check the URL.
-                      </p>
+                    <span className="mb-2 block text-xs font-semibold uppercase tracking-[.12em] text-[#53617d]">
+                      Avatar image
+                    </span>
+
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={() => set("avatarSource", "google")}
+                        aria-pressed={draft.avatarSource === "google"}
+                        className={`flex items-start gap-3 rounded-xl border-2 px-4 py-3.5 text-left transition ${
+                          draft.avatarSource === "google"
+                            ? "border-[#13b8b0] bg-[#e9f7f6]"
+                            : "border-[#d7e8eb] bg-white hover:border-[#b9d6db]"
+                        } ${!hasGooglePhoto ? "cursor-not-allowed opacity-55" : ""}`}
+                        disabled={!hasGooglePhoto}
+                      >
+                        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
+                          <GoogleMark size={17} />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="flex items-center gap-1.5 text-sm font-semibold text-[#172039]">
+                            Gmail
+                            {draft.avatarSource === "google" && <Check size={14} className="text-[#13b8b0]" />}
+                          </span>
+                          <span className="mt-0.5 block text-xs leading-5 text-[#53617d]">
+                            {hasGooglePhoto ? "Use the photo from your Google account." : "No Google photo on this account."}
+                          </span>
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => set("avatarSource", "manual")}
+                        aria-pressed={draft.avatarSource === "manual"}
+                        className={`flex items-start gap-3 rounded-xl border-2 px-4 py-3.5 text-left transition ${
+                          draft.avatarSource === "manual"
+                            ? "border-[#13b8b0] bg-[#e9f7f6]"
+                            : "border-[#d7e8eb] bg-white hover:border-[#b9d6db]"
+                        }`}
+                      >
+                        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#d9f8f6] text-[#13b8b0]">
+                          <ImageIcon size={17} />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="flex items-center gap-1.5 text-sm font-semibold text-[#172039]">
+                            Manual
+                            {draft.avatarSource === "manual" && <Check size={14} className="text-[#13b8b0]" />}
+                          </span>
+                          <span className="mt-0.5 block text-xs leading-5 text-[#53617d]">
+                            Paste a link to your own image.
+                          </span>
+                        </span>
+                      </button>
+                    </div>
+
+                    {draft.avatarSource === "manual" && (
+                      <div className="mt-4">
+                        <Field label="Image URL" hint={<span className="font-mono text-[10px] text-[#71809f]">PNG or JPG, square works best</span>}>
+                          <input
+                            value={draft.photoUrl}
+                            maxLength={1000}
+                            onChange={event => {
+                              setAvatarError(null);
+                              set("photoUrl", event.target.value);
+                            }}
+                            placeholder="https://example.com/me.jpg"
+                            className={inputClass}
+                          />
+                        </Field>
+                        {avatarError && (
+                          <p className="mt-2 flex items-center gap-1.5 text-xs text-[#a33e23]">
+                            <AlertTriangle size={13} /> That image could not be loaded. Check the URL.
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
 

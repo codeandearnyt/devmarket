@@ -50,6 +50,13 @@ input, select, textarea { background: rgba(255,255,255,.72) !important; border-c
 .site-header + main { padding-top: 96px; }
 .site-header + main > section:first-child { padding-top: 40px; }
 .liquid-page > header, .liquid-page > main, .liquid-page > footer { position: relative; z-index: 1; }
+/* The header must out-rank its siblings. Without this, `.liquid-page > header`
+   (specificity 0,1,1) overrides `.site-header`'s z-index and leaves the header
+   level with <main>; because <main> comes later in the DOM it paints on top,
+   so the avatar dropdown renders *under* the page and its items receive no
+   clicks. Raising only this rule keeps content above the decorative blobs
+   while guaranteeing the account menu stays interactive. */
+.liquid-page > header.site-header { position: fixed; inset: 0 0 auto; z-index: 60; }
 .depth-scene { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; perspective: 900px; opacity: .46; }
 .depth-plane, .depth-orb { position: absolute; pointer-events: none; transform-style: preserve-3d; }
 .depth-plane-grid { width: 76vw; height: 76vw; right: -18vw; top: 16vh; border: 1px solid rgba(19,184,176,.12); background-image: linear-gradient(rgba(19,184,176,.13) 1px, transparent 1px), linear-gradient(90deg, rgba(19,184,176,.13) 1px, transparent 1px); background-size: 44px 44px; transform: rotateX(60deg) rotateZ(-12deg) translate3d(0, calc(var(--scroll-depth, 0px) * -.04), -90px); }

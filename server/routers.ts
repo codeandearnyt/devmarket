@@ -1,9 +1,10 @@
 import crypto from "node:crypto";
 import { eq } from "drizzle-orm";
 import Razorpay from "razorpay";
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { blogPosts, categories, orders, paymentSettings, products, users, type User } from "../drizzle/schema";
-import { COOKIE_NAME } from "@shared/const";
+import { ADMIN_COOKIE_NAME, COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -17,6 +18,8 @@ import {
   getAdminAnalytics,
   getDashboardStats,
   getDb,
+  getUserByEmail,
+  getUserByFirebaseUid,
   getUserByOpenId,
   getVerifiedPurchase,
   getOrderForUser,
@@ -47,6 +50,7 @@ import { sendDeliveryEmail } from "./email";
 import { storagePut } from "./storage";
 import { publishRealtime } from "./realtime";
 import { authenticateFirebaseUser, createCredentialSession } from "./credentials";
+import { exchangeCredentialsForIdToken, verifyFirebaseIdToken } from "./_core/firebase";
 
 const productInput = z.object({
   title: z.string().min(3).max(220), slug: z.string().min(3).max(240), description: z.string().min(10), shortDescription: z.string().min(5).max(320),
@@ -112,6 +116,64 @@ export const appRouter = router({
         });
         return publicUser(user);
       }),
+
+    /**
+     * Unlock the admin console with operator credentials.
+     *
+     * Deliberately independent of whatever session the browser already holds:
+     * a visitor signed in with Google is *not* admin just because they browsed
+     * to /admin. The password is checked by Firebase, the resulting ID token is
+     * verified against Google's keys, and only an account whose role is
+     * `admin` receives a session cookie.
+     */
+    adminLogin: publicProcedure
+      .input(
+        z.object({
+          email: z.string().trim().email().max(320),
+          password: z.string().min(1).max(1024),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const idToken = await exchangeCredentialsForIdToken(input.email.toLowerCase(), input.password);
+        if (!idToken) {
+          // UNAUTHORIZED (not INTERNAL) so the message reaches the form and
+          // tRPC does not mask it as a generic 500. Kept vague so the form
+          // cannot be used to discover which emails exist or which are admins.
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "Those admin credentials are not valid" });
+        }
+
+        const claims = await verifyFirebaseIdToken(idToken);
+        if (!claims?.user_id) throw new TRPCError({ code: "UNAUTHORIZED", message: "Those admin credentials are not valid" });
+
+        const row =
+          (await getUserByFirebaseUid(claims.user_id)) ??
+          (claims.email ? await getUserByEmail(claims.email.toLowerCase()) : undefined);
+
+        if (!row || row.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "That account does not have console access" });
+        }
+        if (row.isDisabled) throw new TRPCError({ code: "FORBIDDEN", message: "This administrator account has been disabled" });
+
+        const session = await createCredentialSession(row);
+        // A dedicated cookie, so unlocking the console never overwrites (or
+        // hijacks) the storefront session the browser already holds.
+        ctx.res.cookie(ADMIN_COOKIE_NAME, session, {
+          ...getSessionCookieOptions(ctx.req),
+          maxAge: 365 * 24 * 60 * 60 * 1000,
+        });
+
+        return publicUser(row);
+      }),
+
+    /** Who is behind the admin cookie? Null when the console is locked. */
+    adminMe: publicProcedure.query(opts => publicUser(opts.ctx.adminUser)),
+
+    /** Drop the session issued by `adminLogin`. */
+    adminLogout: publicProcedure.mutation(({ ctx }) => {
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(ADMIN_COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      return { success: true } as const;
+    }),
 
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);

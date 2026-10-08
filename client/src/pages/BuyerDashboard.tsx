@@ -6,6 +6,7 @@ import { useRealtime } from "@/hooks/useRealtime";
 import { money, typeLabel } from "./Home";
 import HeaderAvatar from "@/components/HeaderAvatar";
 import SiteHeader from "@/components/SiteHeader";
+import SiteFooter from "@/components/SiteFooter";
 
 const statusStyles: Record<string, string> = { PENDING: "bg-[#fff4c6] text-[#8a6500]", PAID: "bg-[#e7f5c8] text-[#427018]", DELIVERED: "bg-[#c7f76d] text-[#172039]", REJECTED: "bg-[#ffe0d7] text-[#a33e23]", FAILED: "bg-[#ffe0d7] text-[#a33e23]" };
 const statusLabel: Record<string, string> = { PENDING: "Pending review", PAID: "Paid", DELIVERED: "Delivered", REJECTED: "Rejected", FAILED: "Payment failed" };
@@ -28,6 +29,7 @@ export default function BuyerDashboard() {
             <Link href="/login" className="btn mt-7 inline-flex rounded-full bg-[#172039] px-6 py-3.5 font-semibold text-white">Sign in to continue</Link>
           </div>
         </div>
+        <SiteFooter />
       </div>
     );
   }
@@ -85,6 +87,11 @@ export default function BuyerDashboard() {
       ) : (
         <div className="py-16 text-center text-[#53617d]">No purchases yet. Start building!</div>
       )}
+      {/* The root pads the page horizontally/vertically; cancelling that here
+          lets the footer's rule and gutters line up with every other route. */}
+      <div className="-mx-5 -mb-7">
+        <SiteFooter />
+      </div>
     </div>
   );
 }

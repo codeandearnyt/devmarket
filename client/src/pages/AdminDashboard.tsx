@@ -1,6 +1,7 @@
-import { BarChart3, BookOpen, Check, ChevronRight, CreditCard, FolderPlus, LayoutDashboard, MessageSquareText, PackagePlus, Settings2, ShieldCheck, Users, X } from "lucide-react";
-import { useState } from "react";
+import { BarChart3, BookOpen, Check, ChevronRight, CreditCard, Eye, EyeOff, FolderPlus, LayoutDashboard, Loader2, Lock, LogOut, MessageSquareText, PackagePlus, Settings2, ShieldCheck, Users, X } from "lucide-react";
+import { useState, type FormEvent } from "react";
 import { Link } from "wouter";
+import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { useRealtime } from "@/hooks/useRealtime";
@@ -29,8 +30,24 @@ function Metric({ label, value, detail, tone = "lime" }: { label: string; value:
 export default function AdminDashboard() {
   useRealtime("admin");
   const { user, isAuthenticated } = useAuth();
-  const isAdmin = user?.role === "admin";
   const [tab, setTab] = useState("overview");
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<number | null>(null);
+  const [productDraft, setProductDraft] = useState<ProductDraft>(emptyProductDraft);
+
+  // Operator identity, carried by the dedicated admin cookie. This is NOT the
+  // storefront session: a visitor signed in with Google never satisfies it,
+  // even if their account holds role=admin.
+  const adminQuery = trpc.auth.adminMe.useQuery(undefined, { refetchOnWindowFocus: false });
+  const adminUser = adminQuery.data ?? null;
+  const isAdmin = Boolean(adminUser);
+
+  const adminLogin = trpc.auth.adminLogin.useMutation();
+  const adminLogout = trpc.auth.adminLogout.useMutation({ onSuccess: () => adminQuery.refetch() });
+
+  const [credentials, setCredentials] = useState({ email: "", password: "" });
+  const [revealed, setRevealed] = useState(false);
+
   const stats = trpc.admin.stats.useQuery(undefined, { enabled: isAdmin });
   const orders = trpc.admin.orders.useQuery(undefined, { enabled: isAdmin });
   const products = trpc.admin.products.useQuery(undefined, { enabled: isAdmin });
@@ -39,20 +56,116 @@ export default function AdminDashboard() {
   const categories = trpc.admin.categories.useQuery(undefined, { enabled: isAdmin });
   const createProduct = trpc.admin.createProduct.useMutation({ onSuccess: () => { products.refetch(); setShowProductForm(false); setEditingProductId(null); } });
   const updateProduct = trpc.admin.updateProduct.useMutation({ onSuccess: () => { products.refetch(); setShowProductForm(false); setEditingProductId(null); } });
-  const [showProductForm, setShowProductForm] = useState(false);
-  const [editingProductId, setEditingProductId] = useState<number | null>(null);
-  const [productDraft, setProductDraft] = useState<ProductDraft>(emptyProductDraft);
 
-  if (!isAuthenticated || !isAdmin) {
+  async function unlockConsole(event: FormEvent) {
+    event.preventDefault();
+    if (!credentials.email.trim() || !credentials.password) return;
+    try {
+      await adminLogin.mutateAsync({
+        email: credentials.email.trim().toLowerCase(),
+        password: credentials.password,
+      });
+      setCredentials({ email: "", password: "" });
+      await adminQuery.refetch();
+      toast.success("Console unlocked");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Those admin credentials are not valid");
+    }
+  }
+
+  async function lockConsole() {
+    try {
+      await adminLogout.mutateAsync();
+      await adminQuery.refetch();
+    } catch {
+      // The cookie may already be gone; the refetch is what actually locks.
+    }
+  }
+
+  if (adminQuery.isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#eef8fa] text-[#53617d]">
+        <Loader2 size={22} className="animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
     return (
       <div className="liquid-page min-h-screen bg-[#eef8fa] text-[#172039]">
         <SiteHeader />
         <div className="px-5 py-12">
-          <div className="mx-auto max-w-xl rounded-[2rem] border border-[#d7e8eb] bg-[#f8ffff] p-9 text-center">
-            <ShieldCheck className="mx-auto text-[#13b8b0]" size={34} />
-            <h1 className="mt-5 font-display text-4xl font-semibold tracking-[-.06em]">Admin access only.</h1>
-            <p className="mt-3 text-[#53617d]">This command center is protected by role-based access control. Sign in with an admin account to continue.</p>
-            <Link href="/login" className="mt-7 inline-flex rounded-full bg-[#172039] px-6 py-3.5 font-semibold text-white">Sign in to continue</Link>
+          <div className="mx-auto max-w-xl rounded-[2rem] border border-[#d7e8eb] bg-[#f8ffff] p-9">
+            <div className="text-center">
+              <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#172039] text-[#c7f76d]">
+                <ShieldCheck size={26} />
+              </span>
+              <h1 className="mt-5 font-display text-4xl font-semibold tracking-[-.06em]">Admin access only.</h1>
+              <p className="mt-3 text-sm leading-6 text-[#53617d]">
+                This console is opened with its own operator credentials — a Google sign-in on the storefront
+                will not unlock it.
+              </p>
+            </div>
+
+            <form onSubmit={unlockConsole} className="mt-8 space-y-4">
+              <div>
+                <label htmlFor="admin-email" className="mb-1.5 block text-xs font-semibold uppercase tracking-[.12em] text-[#53617d]">
+                  Operator email
+                </label>
+                <input
+                  id="admin-email"
+                  type="email"
+                  autoComplete="username"
+                  required
+                  value={credentials.email}
+                  onChange={event => setCredentials(prev => ({ ...prev, email: event.target.value }))}
+                  placeholder="you@example.com"
+                  className="w-full rounded-xl border border-[#d7e8eb] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#13b8b0]"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="admin-password" className="mb-1.5 block text-xs font-semibold uppercase tracking-[.12em] text-[#53617d]">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    id="admin-password"
+                    type={revealed ? "text" : "password"}
+                    autoComplete="current-password"
+                    required
+                    value={credentials.password}
+                    onChange={event => setCredentials(prev => ({ ...prev, password: event.target.value }))}
+                    placeholder="••••••••••••"
+                    className="w-full rounded-xl border border-[#d7e8eb] bg-white px-4 py-3 pr-11 text-sm outline-none transition focus:border-[#13b8b0]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setRevealed(prev => !prev)}
+                    aria-label={revealed ? "Hide password" : "Show password"}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#71809f] transition hover:text-[#172039]"
+                  >
+                    {revealed ? <EyeOff size={17} /> : <Eye size={17} />}
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={adminLogin.isPending || !credentials.email.trim() || !credentials.password}
+                className="btn inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#172039] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#13b8b0] disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {adminLogin.isPending ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
+                {adminLogin.isPending ? "Checking…" : "Unlock console"}
+              </button>
+            </form>
+
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-4 text-sm">
+              <Link href="/" className="font-semibold text-[#53617d] transition hover:text-[#13b8b0]">Back to storefront</Link>
+              {!isAuthenticated && (
+                <Link href="/login" className="font-semibold text-[#13b8b0] transition hover:text-[#172039]">Sign in to the shop</Link>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -91,8 +204,19 @@ export default function AdminDashboard() {
             ))}
           </nav>
           <div className="hidden px-6 pb-8 lg:block">
-            <div className="mt-16 border-t border-white/15 pt-5 text-xs leading-5 text-white/45">
-              Secure administration<br />Payment gates active<br />Storage protected
+            <div className="mt-16 border-t border-white/15 pt-5">
+              <p className="text-xs leading-5 text-white/45">Secure administration<br />Payment gates active<br />Storage protected</p>
+              <div className="mt-4 rounded-xl bg-white/5 p-3">
+                <p className="truncate text-xs font-semibold text-white/80">{adminUser?.email ?? adminUser?.name ?? "Operator"}</p>
+                <button
+                  type="button"
+                  onClick={lockConsole}
+                  disabled={adminLogout.isPending}
+                  className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#13b8b0] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#c7f76d] hover:text-[#172039] disabled:opacity-60"
+                >
+                  <LogOut size={13} /> Lock console
+                </button>
+              </div>
             </div>
           </div>
         </aside>
@@ -104,6 +228,14 @@ export default function AdminDashboard() {
                 <h1 className="mt-2 font-display text-4xl font-semibold tracking-[-.07em]">{nav.find(item => item.id === tab)?.label.replace(/ · \d+/, "")}</h1>
               </div>
               {isAuthenticated ? (<HeaderAvatar />) : ("")}
+              <button
+                type="button"
+                onClick={lockConsole}
+                title="Lock the admin console"
+                className="inline-flex items-center gap-2 rounded-full border border-[#d7e8eb] bg-white px-4 py-2.5 text-xs font-semibold text-[#53617d] transition hover:border-[#13b8b0] hover:text-[#13b8b0] lg:hidden"
+              >
+                <LogOut size={14} /> Lock
+              </button>
             </div>
             <Link href="/" className="hidden items-center gap-2 text-sm font-semibold text-[#53617d] md:flex">View storefront <ChevronRight size={16} /></Link>
           </div>

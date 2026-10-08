@@ -1,4 +1,4 @@
-import { AXIOS_TIMEOUT_MS, COOKIE_NAME, ONE_YEAR_MS, decodeOAuthState } from "@shared/const";
+import { AXIOS_TIMEOUT_MS, ADMIN_COOKIE_NAME, COOKIE_NAME, ONE_YEAR_MS, decodeOAuthState } from "@shared/const";
 import { ForbiddenError } from "@shared/_core/errors";
 import axios, { type AxiosInstance } from "axios";
 import { parse as parseCookieHeader } from "cookie";
@@ -229,6 +229,29 @@ class SDKServer {
       console.warn("[Auth] Session verification failed", String(error));
       return null;
     }
+  }
+
+  /**
+   * Resolve the operator behind the dedicated admin cookie.
+   *
+   * Deliberately stricter than `authenticateRequest`: there is no OAuth
+   * fallback, no auto-provisioning, and an account that is not `role: admin`
+   * is rejected outright. Returns null when the console is locked, so callers
+   * can treat "no admin session" as a normal state rather than an error.
+   */
+  async authenticateAdminRequest(req: Request): Promise<User | null> {
+    const cookies = this.parseCookies(req.headers.cookie);
+    const token = cookies.get(ADMIN_COOKIE_NAME);
+    if (!token) return null;
+
+    const session = await this.verifySession(token);
+    if (!session) return null;
+
+    const user = await db.getUserByOpenId(session.openId);
+    if (!user || user.role !== "admin" || user.isDisabled) {
+      return null;
+    }
+    return user;
   }
 
   async getUserInfoWithJwt(

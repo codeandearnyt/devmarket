@@ -1,4 +1,12 @@
 export const COOKIE_NAME = "app_session_id";
+
+// The admin console authenticates with its own cookie, deliberately separate
+// from COOKIE_NAME. A visitor signed in with Google on the storefront keeps
+// their own session untouched, and they can never inherit console access just
+// by browsing to /admin — the console is opened only by typing the operator
+// credentials, which issue THIS cookie.
+export const ADMIN_COOKIE_NAME = "app_admin_session_id";
+
 export const ONE_YEAR_MS = 1000 * 60 * 60 * 24 * 365;
 export const AXIOS_TIMEOUT_MS = 30_000;
 export const UNAUTHED_ERR_MSG = 'Please login (10001)';
