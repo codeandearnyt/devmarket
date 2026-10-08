@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { updateProfile } from "firebase/auth";
 
 export default function ProfilePage() {
   const { user, firebaseUser, logout } = useAuth();
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({
     displayName: user?.name || firebaseUser?.displayName || "",
