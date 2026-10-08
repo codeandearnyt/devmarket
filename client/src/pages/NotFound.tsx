@@ -1,52 +1,71 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { AlertCircle, Home } from "lucide-react";
-import { useLocation } from "wouter";
+import { Link } from "wouter";
+import { ArrowLeft, Compass, Home } from "lucide-react";
+import SiteHeader from "@/components/SiteHeader";
+import SiteFooter from "@/components/SiteFooter";
+import ScrollDepthBackground from "@/components/ScrollDepthBackground";
+import { useEffect } from "react";
+
+const suggestions = [
+  { label: "Explore the library", href: "/#explore", copy: "Browse production-ready code and prompts." },
+  { label: "Read the blog", href: "/blog", copy: "Practical notes on shipping digital work." },
+  { label: "Meet the developer", href: "/developer", copy: "See what is being built and why." },
+];
 
 export default function NotFound() {
-  const [, setLocation] = useLocation();
-
-  const handleGoHome = () => {
-    setLocation("/");
-  };
+  useEffect(() => {
+    document.title = "Page not found | DevMarket";
+  }, []);
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
-      <Card className="w-full max-w-lg mx-4 shadow-lg border-0 bg-white/80">
-        <CardContent className="pt-8 pb-8 text-center">
-          <div className="flex justify-center mb-6">
-            <div className="relative">
-              <div className="absolute inset-0 bg-red-100 rounded-full animate-pulse" />
-              <AlertCircle className="relative h-16 w-16 text-red-500" />
-            </div>
-          </div>
+    <div className="liquid-page min-h-screen overflow-hidden bg-[#eef8fa] text-[#172039]">
+      <ScrollDepthBackground />
+      <SiteHeader />
 
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">404</h1>
+      <main className="mx-auto flex max-w-[1100px] flex-col items-center px-5 pb-24 pt-28 text-center lg:pt-36">
+        <p className="font-mono text-[11px] uppercase tracking-[.22em] text-[#13b8b0]">
+          Error / 404
+        </p>
 
-          <h2 className="text-xl font-semibold text-slate-700 mb-4">
-            Page Not Found
-          </h2>
+        <h1 className="mt-5 font-display text-[clamp(4rem,16vw,11rem)] font-semibold leading-[.82] tracking-[-.1em]">
+          404
+        </h1>
 
-          <p className="text-slate-600 mb-8 leading-relaxed">
-            Sorry, the page you are looking for doesn't exist.
-            <br />
-            It may have been moved or deleted.
-          </p>
+        <h2 className="mt-6 max-w-2xl font-display text-3xl font-semibold leading-[.95] tracking-[-.06em] sm:text-5xl">
+          This page went <span className="text-[#13b8b0]">off the map.</span>
+        </h2>
 
-          <div
-            id="not-found-button-group"
-            className="flex flex-col sm:flex-row gap-3 justify-center"
-          >
-            <Button
-              onClick={handleGoHome}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+        <p className="mt-6 max-w-xl text-lg leading-8 text-[#53617d]">
+          The link may be broken, or the page may have been moved. Nothing is lost —
+          your library and account are exactly where you left them.
+        </p>
+
+        <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+          <Link href="/" className="btn inline-flex items-center rounded-full bg-[#172039] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#13b8b0]">
+            <Home size={16} className="mr-2" /> Back to the marketplace
+          </Link>
+          <Link href="/login" className="btn inline-flex items-center rounded-full border border-[#b9d6db] bg-white/45 px-6 py-3.5 text-sm font-semibold transition hover:border-[#172039]">
+            Go to my library <ArrowLeft size={16} className="ml-2" />
+          </Link>
+        </div>
+
+        <div className="mt-16 grid w-full gap-3 sm:grid-cols-3">
+          {suggestions.map(item => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="glass group rounded-[1.75rem] p-6 text-left transition duration-200 hover:-translate-y-1"
             >
-              <Home className="w-4 h-4 mr-2" />
-              Go Home
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              <Compass className="text-[#13b8b0]" size={20} />
+              <h3 className="mt-8 font-display text-lg font-semibold tracking-[-.03em] transition group-hover:text-[#13b8b0]">
+                {item.label}
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-[#53617d]">{item.copy}</p>
+            </Link>
+          ))}
+        </div>
+      </main>
+
+      <SiteFooter />
     </div>
   );
 }
