@@ -29,6 +29,16 @@ export type AuthUser = {
   photoUrl: string | null;
   loginMethod: string | null;
   role: "user" | "admin";
+  /** Profile fields, editable from /profile. */
+  username?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  website?: string | null;
+  github?: string | null;
+  linkedin?: string | null;
+  createdAt?: Date | string;
 } | null;
 
 /**

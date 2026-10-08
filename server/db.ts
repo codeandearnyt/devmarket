@@ -151,6 +151,83 @@ export async function getUserByEmail(email: string) {
   return result[0];
 }
 
+/** Fields a user is allowed to change about themselves. */
+export type ProfilePatch = {
+  firstName?: string | null;
+  lastName?: string | null;
+  username?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  website?: string | null;
+  github?: string | null;
+  linkedin?: string | null;
+  photoUrl?: string | null;
+};
+
+/**
+ * Apply a profile edit and return the fresh row.
+ *
+ * `name` is kept in sync with first/last so the header greeting and the
+ * `users.name` column never drift from what the profile page shows.
+ */
+export async function updateUserProfile(userId: number, patch: ProfilePatch) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+
+  const [current] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!current) throw new Error("Account not found");
+
+  const set: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) continue;
+    set[key] = value === "" ? null : value;
+  }
+
+  // Recompute the display name whenever either half of it changed.
+  if (patch.firstName !== undefined || patch.lastName !== undefined) {
+    const first = patch.firstName === undefined ? (current.firstName ?? "") : (patch.firstName ?? "");
+    const last = patch.lastName === undefined ? (current.lastName ?? "") : (patch.lastName ?? "");
+    const combined = `${first} ${last}`.trim();
+    set.name = combined || null;
+  }
+
+  set.updatedAt = new Date();
+  await db.update(users).set(set).where(eq(users.id, userId));
+
+  const [refreshed] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  return refreshed;
+}
+
+/** Usernames are a public handle, so uniqueness is checked before saving. */
+export async function isUsernameTaken(username: string, excludeUserId?: number) {
+  const db = await getDb();
+  if (!db) return false;
+  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.username, username)).limit(1);
+  if (!existing) return false;
+  return excludeUserId === undefined ? true : existing.id !== excludeUserId;
+}
+
+/**
+ * Permanently remove the account row.
+ *
+ * Orders, reviews and analytics reference the user, so the caller is
+ * responsible for confirming intent; this is intentionally irreversible.
+ */
+export async function deleteUserAccount(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.delete(users).where(eq(users.id, userId));
+}
+
+/** Count of purchases, used for the profile stats strip. */
+export async function countUserOrders(userId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const rows = await db.select({ id: orders.id }).from(orders).where(eq(orders.userId, userId));
+  return rows.length;
+}
+
 export async function createCredentialUser(data: { openId: string; email: string; name: string; passwordHash: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database is not configured");

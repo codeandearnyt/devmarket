@@ -11,15 +11,19 @@ import {
   createBlogPost,
   createOrder,
   createReview,
+  countUserOrders,
   deleteBlogPost,
+  deleteUserAccount,
   getAdminAnalytics,
   getDashboardStats,
   getDb,
+  getUserByOpenId,
   getVerifiedPurchase,
   getOrderForUser,
   getPaymentSettings,
   getPublishedBlogPostBySlug,
   getProductBySlug,
+  isUsernameTaken,
   listAdminOrders,
   listAdminBlogPosts,
   listAllReviews,
@@ -37,6 +41,7 @@ import {
   setReviewReply,
   updateBlogPost,
   updateOrderStatus,
+  updateUserProfile,
 } from "./db";
 import { sendDeliveryEmail } from "./email";
 import { storagePut } from "./storage";
@@ -109,6 +114,83 @@ export const appRouter = router({
       }),
 
     logout: publicProcedure.mutation(({ ctx }) => {
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+      return { success: true } as const;
+    }),
+
+    /**
+     * Save profile edits.
+     *
+     * Only the fields the visitor actually sent are written, so a partial
+     * update never blanks out the rest of the profile.
+     */
+    updateProfile: protectedProcedure
+      .input(
+        z.object({
+          firstName: z.string().trim().max(80).optional(),
+          lastName: z.string().trim().max(80).optional(),
+          username: z
+            .string()
+            .trim()
+            .max(40)
+            .regex(/^[a-zA-Z0-9_.-]+$/, "Use letters, numbers, dots, dashes or underscores only")
+            .optional(),
+          bio: z.string().trim().max(500).optional(),
+          location: z.string().trim().max(120).optional(),
+          website: z.string().trim().max(300).optional(),
+          github: z.string().trim().max(120).optional(),
+          linkedin: z.string().trim().max(160).optional(),
+          photoUrl: z.string().trim().max(1000).optional(),
+        })
+      )
+      .mutation(async ({ ctx, input }) => {
+        const user = ctx.user as NonNullable<typeof ctx.user>;
+
+        // Normalise a handle to lower case so "Nitin" and "nitin" cannot both exist.
+        if (input.username) {
+          const username = input.username.toLowerCase();
+          if (await isUsernameTaken(username, user.id)) {
+            throw new Error("That username is already taken");
+          }
+          await updateUserProfile(user.id, { ...input, username });
+        } else {
+          await updateUserProfile(user.id, input);
+        }
+
+        const [refreshed] = await Promise.all([getUserByOpenId(user.openId)]);
+        return publicUser(refreshed ?? user);
+      }),
+
+    /** Availability check so the UI can warn before the user hits save. */
+    usernameAvailable: protectedProcedure
+      .input(z.object({ username: z.string().trim().max(40) }))
+      .query(async ({ ctx, input }) => {
+        const user = ctx.user as NonNullable<typeof ctx.user>;
+        const username = input.username.toLowerCase();
+        if (!username) return { available: false };
+        return { available: !(await isUsernameTaken(username, user.id)) };
+      }),
+
+    /** Lifetime purchase count for the profile stats strip. */
+    stats: protectedProcedure.query(async ({ ctx }) => {
+      const user = ctx.user as NonNullable<typeof ctx.user>;
+      return {
+        orders: await countUserOrders(user.id),
+        memberSince: user.createdAt,
+        role: user.role,
+      };
+    }),
+
+    /**
+     * Delete the local account row and clear the session.
+     *
+     * The Firebase identity is removed separately by the client, which is the
+     * only holder of the credentials needed to call Firebase's delete API.
+     */
+    deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
+      const user = ctx.user as NonNullable<typeof ctx.user>;
+      await deleteUserAccount(user.id);
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
