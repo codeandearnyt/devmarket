@@ -18,7 +18,7 @@ const ProductDetails = lazy(() => import("./pages/Checkout").then(module => ({ d
 const Developer = lazy(() => import("./pages/Developer"));
 const InfoPage = lazy(() => import("./pages/InfoPage"));
 const Login = lazy(() => import("./pages/Login"));
-const Profile = lazy(() => import("./pages/Profile"));
+const Profile = lazy(() => import("./pages/ProfilePage"));
 
 function RouteFallback() {
   return (
