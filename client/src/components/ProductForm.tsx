@@ -7,7 +7,7 @@ export type ProductDraft = {
   slug: string;
   shortDescription: string;
   description: string;
-  type: "SOURCE_CODE" | "PROMPT" | "PROJECT";
+  type: string;
   categoryId: number;
   price: number;
   thumbnailUrl: string;
@@ -47,9 +47,12 @@ type Category = { id: number; name: string };
  * URLs), so it is wired through its `value`/`onChange` props and the first
  * uploaded image doubles as the cover thumbnail.
  */
+export type ProductTypeOption = { id: number; name: string; slug: string };
+
 export default function ProductForm({
   draft,
   categories,
+  types,
   pending,
   submitLabel,
   onChange,
@@ -58,6 +61,7 @@ export default function ProductForm({
 }: {
   draft: ProductDraft;
   categories: Category[];
+  types: ProductTypeOption[];
   pending: boolean;
   submitLabel: string;
   onChange: (next: ProductDraft) => void;
@@ -150,12 +154,16 @@ export default function ProductForm({
             Type
             <select
               value={draft.type}
-              onChange={event => set("type", event.target.value as ProductDraft["type"])}
+              onChange={event => set("type", event.target.value)}
               className="mt-2 w-full rounded-xl border border-[#d7e8eb] bg-white px-4 py-3 font-normal outline-none transition focus:border-[#13b8b0]"
             >
-              <option value="PROJECT">Full project</option>
-              <option value="SOURCE_CODE">Source code</option>
-              <option value="PROMPT">AI prompt</option>
+              {types.length === 0 ? (
+                <option value="source-code">Source code</option>
+              ) : (
+                types.map(type => (
+                  <option key={type.id} value={type.slug}>{type.name}</option>
+                ))
+              )}
             </select>
           </label>
 

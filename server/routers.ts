@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import Razorpay from "razorpay";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { blogPosts, categories, orders, paymentSettings, products, users, type User } from "../drizzle/schema";
+import { blogPosts, categories, orders, paymentSettings, productTypes, products, users, type User } from "../drizzle/schema";
 import { ADMIN_COOKIE_NAME, COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -33,6 +33,10 @@ import {
   listCategories,
   listFeaturedProducts,
   listOrdersForUser,
+  listProductTypes,
+  countProductsByType,
+  countProductsByCategory,
+  countOrdersByUser,
   listProducts,
   listPublishedBlogPosts,
   listPublishedBlogPostsPage,
@@ -48,21 +52,70 @@ import {
 } from "./db";
 import { sendDeliveryEmail } from "./email";
 import { storagePut } from "./storage";
+import { hashPassword } from "./credentials";
 import { publishRealtime } from "./realtime";
 import { authenticateFirebaseUser, createCredentialSession } from "./credentials";
 import { exchangeCredentialsForIdToken, verifyFirebaseIdToken } from "./_core/firebase";
 
 const productInput = z.object({
   title: z.string().min(3).max(220), slug: z.string().min(3).max(240), description: z.string().min(10), shortDescription: z.string().min(5).max(320),
-  type: z.enum(["SOURCE_CODE", "PROMPT", "PROJECT"]), categoryId: z.number().int().positive(), price: z.number().int().nonnegative(), discountPrice: z.number().int().nonnegative().nullable().optional(),
+  type: z.string().min(2).max(64), categoryId: z.number().int().positive(), price: z.number().int().nonnegative(), discountPrice: z.number().int().nonnegative().nullable().optional(),
   thumbnailUrl: z.string().min(1), previewImages: z.array(z.string()).optional(), demoUrl: z.string().nullable().optional(), techStack: z.array(z.string()).optional(), fileUrl: z.string().min(1), isPublished: z.boolean().optional(), isFeatured: z.boolean().optional(),
 });
 
-const blogInput = z.object({
+/**
+ * The block editor writes structured content. `content` stays a markdown mirror
+ * (derived here when blocks are supplied) so older posts and any markdown
+ * reader keep working; `excerpt` is likewise derived from the first paragraph.
+ */
+const blogBlockSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("heading"), text: z.string().min(1).max(200) }),
+  z.object({ type: z.literal("paragraph"), text: z.string().min(1).max(20000) }),
+  z.object({ type: z.literal("image"), src: z.string().min(4).max(2_000_000).refine(value => /^(https?:\/\/|data:image\/)/i.test(value), "Image must be an https URL or an inline image"), alt: z.string().max(200).optional() }),
+  z.object({ type: z.literal("iframe"), src: z.string().min(8).max(2000).url("Embed must be a URL").refine(value => /^https?:\/\//i.test(value), "Embed must be an http(s) URL") }),
+]);
+
+const blogObject = z.object({
   title: z.string().min(5).max(220), slug: z.string().min(3).max(240).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-  excerpt: z.string().min(20).max(320), content: z.string().min(80), coverImageUrl: z.string().url().nullable().optional(),
+  excerpt: z.string().max(320).optional(), content: z.string().max(60000).optional(),
+  coverImageUrl: z.string().max(2_000_000).nullable().optional(),
   category: z.string().min(2).max(120), tags: z.array(z.string().min(1).max(40)).max(8).optional(), authorName: z.string().min(2).max(160), status: z.enum(["DRAFT", "PUBLISHED"]),
+  blocks: z.array(blogBlockSchema).min(1).max(100).optional(),
 });
+
+// A post needs either structured blocks or the legacy markdown pair. Kept as a
+// shared predicate so create and update enforce the exact same rule.
+const hasBody = (data: z.infer<typeof blogObject>) =>
+  Boolean(data.blocks?.length) || (Boolean(data.excerpt) && Boolean(data.content));
+
+const blogInput = blogObject.refine(hasBody, { message: "Provide blocks or both excerpt and content" });
+const blogUpdateInput = blogObject.extend({ id: z.number().int().positive() }).refine(hasBody, { message: "Provide blocks or both excerpt and content" });
+
+/** Serialize blocks to the markdown mirror stored in `content`. */
+function blocksToMarkdown(blocks: z.infer<typeof blogBlockSchema>[]) {
+  return blocks
+    .map(block => {
+      if (block.type === "heading") return `## ${block.text}`;
+      if (block.type === "image") return `![${block.alt ?? "Image"}](${block.src})`;
+      if (block.type === "iframe") return `<iframe src="${block.src}" title="Embedded content" class="w-full aspect-video rounded-2xl border-0" allowfullscreen loading="lazy"></iframe>`;
+      return block.text;
+    })
+    .join("\n\n");
+}
+
+/** First paragraph as plain text, truncated to the excerpt column width. */
+function blocksToExcerpt(blocks: z.infer<typeof blogBlockSchema>[], fallback = "") {
+  const paragraph = blocks.find(block => block.type === "paragraph");
+  const raw = paragraph?.type === "paragraph" ? paragraph.text : "";
+  const text = raw
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[*_`>#]/g, "")
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  // The column is NOT NULL, so never return an empty string.
+  return (text || fallback.replace(/\s+/g, " ").trim()).slice(0, 320);
+}
 
 const orderNumber = () => {
   const now = new Date();
@@ -260,8 +313,9 @@ export const appRouter = router({
   }),
   catalog: router({
     categories: publicProcedure.query(() => listCategories()),
+    types: publicProcedure.query(() => listProductTypes()),
     featured: publicProcedure.query(() => listFeaturedProducts()),
-    products: publicProcedure.input(z.object({ categoryId: z.number().optional(), type: z.enum(["SOURCE_CODE", "PROMPT", "PROJECT"]).optional(), search: z.string().optional(), minPrice: z.number().int().nonnegative().optional(), maxPrice: z.number().int().nonnegative().optional(), sort: z.enum(["newest", "price", "popular"]).optional() }).optional()).query(({ input }) => listProducts(input)),
+    products: publicProcedure.input(z.object({ categoryId: z.number().optional(), type: z.string().optional(), search: z.string().optional(), minPrice: z.number().int().nonnegative().optional(), maxPrice: z.number().int().nonnegative().optional(), sort: z.enum(["newest", "price", "popular"]).optional() }).optional()).query(({ input }) => listProducts(input)),
     productBySlug: publicProcedure.input(z.object({ slug: z.string() })).query(({ input }) => getProductBySlug(input.slug)),
     reviews: publicProcedure.input(z.object({ productId: z.number().int().positive() })).query(({ input }) => listProductReviews(input.productId)),
     settings: publicProcedure.query(() => getPaymentSettings()),
@@ -391,11 +445,58 @@ export const appRouter = router({
       return { success: true };
     }),
     uploadProductImage: adminProcedure.input(z.object({ dataUrl: z.string().regex(/^data:image\//) })).mutation(async ({ ctx, input }) => ({ url: await uploadDataUrl(input.dataUrl, `devmarket/product-images/${ctx.user.id}`) })),
+
+    // -- Type management -------------------------------------------------------
+    // Types are table-backed so admins can rename or add them without a DB
+    // migration. Products store the slug in `type`.
+    productTypes: adminProcedure.query(() => listProductTypes()),
+    createProductType: adminProcedure.input(z.object({ name: z.string().min(2).max(120), slug: z.string().min(2).max(140).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/), description: z.string().max(500).optional() })).mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database is not configured");
+      await db.insert(productTypes).values(input);
+      return { success: true };
+    }),
+    updateProductType: adminProcedure.input(z.object({ id: z.number().int().positive(), name: z.string().min(2).max(120), slug: z.string().min(2).max(140).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/), description: z.string().max(500).optional() })).mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database is not configured");
+      const { id, slug: newSlug, ...values } = input;
+      const existing = (await db.select().from(productTypes).where(eq(productTypes.id, id)).limit(1))[0];
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Type not found" });
+      await db.update(productTypes).set({ name: values.name, slug: newSlug, description: values.description ?? null }).where(eq(productTypes.id, id));
+      // Products store the slug, so a rename has to follow it onto every row.
+      if (existing.slug !== newSlug) await db.update(products).set({ type: newSlug }).where(eq(products.type, existing.slug));
+      return { success: true };
+    }),
+    deleteProductType: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database is not configured");
+      const existing = (await db.select().from(productTypes).where(eq(productTypes.id, input.id)).limit(1))[0];
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Type not found" });
+      const inUse = await countProductsByType(existing.slug);
+      if (inUse > 0) throw new TRPCError({ code: "CONFLICT", message: `${inUse} product${inUse === 1 ? "" : "s"} ${inUse === 1 ? "uses" : "use"} this type — reassign them first` });
+      await db.delete(productTypes).where(eq(productTypes.id, input.id));
+      return { success: true };
+    }),
     categories: adminProcedure.query(() => listCategories()),
     createCategory: adminProcedure.input(z.object({ name: z.string().min(2), slug: z.string().min(2), description: z.string().optional() })).mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database is not configured");
       await db.insert(categories).values(input);
+      return { success: true };
+    }),
+    updateCategory: adminProcedure.input(z.object({ id: z.number().int().positive(), name: z.string().min(2).max(120), slug: z.string().min(2).max(140), description: z.string().max(500).optional() })).mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database is not configured");
+      const { id, ...values } = input;
+      await db.update(categories).set(values).where(eq(categories.id, id));
+      return { success: true };
+    }),
+    deleteCategory: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input }) => {
+      const inUse = await countProductsByCategory(input.id);
+      if (inUse > 0) throw new TRPCError({ code: "CONFLICT", message: `Category still holds ${inUse} product${inUse === 1 ? "" : "s"} — move them first` });
+      const db = await getDb();
+      if (!db) throw new Error("Database is not configured");
+      await db.delete(categories).where(eq(categories.id, input.id));
       return { success: true };
     }),
     settings: adminProcedure.query(() => getPaymentSettings()),
@@ -410,13 +511,39 @@ export const appRouter = router({
     }),
     blogs: adminProcedure.query(() => listAdminBlogPosts()),
     createBlog: adminProcedure.input(blogInput).mutation(async ({ input }) => {
-      const post = await createBlogPost({ ...input, coverImageUrl: input.coverImageUrl ?? null, tags: input.tags ?? [], publishedAt: input.status === "PUBLISHED" ? new Date() : null });
+      // The block editor is the source of truth; markdown and the excerpt are
+      // derived so listings and legacy readers see the same article.
+      const blocks = input.blocks ?? null;
+      const post = await createBlogPost({
+        ...input,
+        blocks,
+        content: blocks ? blocksToMarkdown(blocks) : input.content ?? input.title,
+        excerpt: blocks ? blocksToExcerpt(blocks, input.title) : input.excerpt ?? input.title,
+        coverImageUrl: input.coverImageUrl ?? null,
+        tags: input.tags ?? [],
+        publishedAt: input.status === "PUBLISHED" ? new Date() : null,
+      });
       publishRealtime({ type: "blog.updated", scope: "public", data: { action: "created", slug: input.slug } });
       return post;
     }),
-    updateBlog: adminProcedure.input(blogInput.extend({ id: z.number().int().positive() })).mutation(async ({ input }) => {
+    updateBlog: adminProcedure.input(blogUpdateInput).mutation(async ({ input }) => {
       const { id, ...values } = input;
-      const post = await updateBlogPost(id, { ...values, coverImageUrl: values.coverImageUrl ?? null, tags: values.tags ?? [], publishedAt: values.status === "PUBLISHED" ? new Date() : null });
+      const blocks = values.blocks ?? null;
+      const db = await getDb();
+      if (!db) throw new Error("Database is not configured");
+      const existing = (await db.select().from(blogPosts).where(eq(blogPosts.id, id)).limit(1))[0];
+      if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Article not found" });
+      const post = await updateBlogPost(id, {
+        ...values,
+        blocks,
+        content: blocks ? blocksToMarkdown(blocks) : values.content ?? values.title,
+        excerpt: blocks ? blocksToExcerpt(blocks, values.title) : values.excerpt ?? values.title,
+        coverImageUrl: values.coverImageUrl ?? null,
+        tags: values.tags ?? [],
+        // Keep the original publish date once an article is live — only a
+        // fresh publish (draft → published) stamps the current time.
+        publishedAt: values.status === "PUBLISHED" ? existing.publishedAt ?? new Date() : null,
+      });
       publishRealtime({ type: "blog.updated", scope: "public", data: { action: "updated", id } });
       return post;
     }),
@@ -429,12 +556,77 @@ export const appRouter = router({
     users: adminProcedure.query(async () => {
       const db = await getDb();
       if (!db) return [];
-      return db.select({ id: users.id, name: users.name, email: users.email, role: users.role, isDisabled: users.isDisabled, createdAt: users.createdAt }).from(users).orderBy(users.createdAt);
+      return db.select({ id: users.id, name: users.name, email: users.email, username: users.username, role: users.role, isDisabled: users.isDisabled, loginMethod: users.loginMethod, createdAt: users.createdAt }).from(users).orderBy(users.createdAt);
     }),
     toggleUser: adminProcedure.input(z.object({ id: z.number().int().positive(), isDisabled: z.boolean() })).mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database is not configured");
       await db.update(users).set({ isDisabled: input.isDisabled }).where(eq(users.id, input.id));
+      return { success: true };
+    }),
+
+    // -- User management -------------------------------------------------------
+    createUser: adminProcedure.input(z.object({
+      name: z.string().min(2).max(160),
+      email: z.string().trim().email().max(320),
+      username: z.string().min(3).max(40).regex(/^[a-zA-Z0-9_.-]+$/).optional(),
+      role: z.enum(["user", "admin"]).default("user"),
+      password: z.string().min(8).max(128).optional(),
+    })).mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database is not configured");
+      const email = input.email.toLowerCase();
+      const existing = await getUserByEmail(email);
+      if (existing) throw new TRPCError({ code: "CONFLICT", message: "An account with this email already exists" });
+      if (input.username) {
+        const taken = await isUsernameTaken(input.username);
+        if (taken) throw new TRPCError({ code: "CONFLICT", message: "That username is taken" });
+      }
+      // Manually provisioned accounts are adopted automatically the first time
+      // their owner signs in with Google using the same email.
+      await db.insert(users).values({
+        openId: `manual_${crypto.randomBytes(16).toString("hex")}`,
+        email,
+        name: input.name,
+        username: input.username ?? null,
+        role: input.role,
+        passwordHash: input.password ? await hashPassword(input.password) : null,
+        loginMethod: "manual",
+        lastSignedIn: new Date(),
+      });
+      return { success: true };
+    }),
+    updateUser: adminProcedure.input(z.object({
+      id: z.number().int().positive(),
+      name: z.string().min(2).max(160).optional(),
+      email: z.string().trim().email().max(320).optional(),
+      username: z.string().min(3).max(40).regex(/^[a-zA-Z0-9_.-]+$/).nullable().optional(),
+      role: z.enum(["user", "admin"]).optional(),
+      isDisabled: z.boolean().optional(),
+    })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database is not configured");
+      const target = (await db.select().from(users).where(eq(users.id, input.id)).limit(1))[0];
+      if (!target) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+      if (target.id === ctx.user.id && (input.role !== undefined && input.role !== target.role || input.isDisabled !== undefined && input.isDisabled)) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "You cannot change your own role or disable your own account" });
+      }
+      const { id, ...values } = input;
+      if (values.username) {
+        // Exclude the target user so an unchanged username still passes.
+        const taken = await isUsernameTaken(values.username, id);
+        if (taken) throw new TRPCError({ code: "CONFLICT", message: "That username is taken" });
+      }
+      await db.update(users).set(values).where(eq(users.id, id));
+      return { success: true };
+    }),
+    deleteUser: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      if (input.id === ctx.user.id) throw new TRPCError({ code: "FORBIDDEN", message: "You cannot delete your own account" });
+      const orderCount = await countOrdersByUser(input.id);
+      if (orderCount > 0) throw new TRPCError({ code: "CONFLICT", message: `This user has ${orderCount} order${orderCount === 1 ? "" : "s"} — disable the account instead` });
+      const db = await getDb();
+      if (!db) throw new Error("Database is not configured");
+      await db.delete(users).where(eq(users.id, input.id));
       return { success: true };
     }),
   }),

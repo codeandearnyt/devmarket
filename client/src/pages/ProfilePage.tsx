@@ -134,7 +134,7 @@ function LinkRow({ label, icon, value }: { label: string; icon: React.ReactNode;
       href={full}
       target="_blank"
       rel="noreferrer noopener"
-      className="inline-flex items-center gap-2 rounded-full border border-[#d7e8eb] bg-white/70 px-3.5 py-2 text-xs font-semibold text-[#53617d] transition hover:border-[#13b8b0] hover:text-[#13b8b0]"
+      className="neu-chip inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold text-[#53617d] transition hover:text-[#13b8b0]"
     >
       {icon}
       <span className="max-w-[180px] truncate">{value}</span>
@@ -164,7 +164,7 @@ function Field({
 }
 
 const inputClass =
-  "w-full rounded-xl border border-[#d7e8eb] bg-white px-4 py-3 text-sm outline-none transition placeholder:text-[#a1a19b] focus:border-[#13b8b0] focus:ring-4 focus:ring-[#13b8b0]/10";
+  "neu-well w-full rounded-xl px-4 py-3 text-sm outline-none transition placeholder:text-[#a1a19b]";
 
 export default function ProfilePage() {
   const { user, firebaseUser, logout, isAuthenticated } = useAuth();
@@ -258,10 +258,10 @@ export default function ProfilePage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#eef8fa] text-[#172039]">
+      <div className="profile-page min-h-screen text-[#172039]">
         <SiteHeader />
         <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 px-5 text-center">
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#d9f8f6] text-[#13b8b0]">
+          <span className="neu-lift flex h-16 w-16 items-center justify-center rounded-full bg-[#d9f8f6] text-[#13b8b0]">
             <UserIcon size={30} />
           </span>
           <div>
@@ -270,7 +270,7 @@ export default function ProfilePage() {
               Your profile holds your public details, purchase history and account settings.
             </p>
           </div>
-          <Link href="/login" className="btn inline-flex items-center rounded-full bg-[#172039] px-6 py-3.5 text-sm font-semibold text-white transition hover:bg-[#13b8b0]">
+          <Link href="/login" className="btn neu-btn-dark inline-flex items-center rounded-full px-6 py-3.5 text-sm font-semibold transition">
             Sign in to continue
           </Link>
         </div>
@@ -383,32 +383,39 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#eef8fa] text-[#172039]">
+    <div className="profile-page min-h-screen text-[#172039]">
       <SiteHeader />
 
       <main className="pb-24">
         {/* ---------------- Hero ---------------- */}
-        <section className="relative overflow-hidden border-b border-[#d7e8eb] bg-white/40">
-          <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: "linear-gradient(rgba(19,184,176,.35) 1px, transparent 1px), linear-gradient(90deg, rgba(19,184,176,.35) 1px, transparent 1px)", backgroundSize: "46px 46px" }} />
-          <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-[#13b8b0] opacity-15 blur-3xl" />
-
+        {/* Hero — flat surface: neumorphism needs an uninterrupted base
+            colour to read against, so the grid overlay and glow blob that
+            used to live here are gone. */}
+        <section className="relative overflow-hidden">
           <div className="relative mx-auto max-w-[1080px] px-5 pb-10 pt-16 lg:px-8 lg:pb-14 lg:pt-24">
             <div className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
               <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
                 <div className="relative shrink-0">
-                  <div className="h-28 w-28 overflow-hidden rounded-full border-4 border-white bg-[#d9f8f6] shadow-[0_18px_40px_rgba(23,32,57,.16)] lg:h-32 lg:w-32">
-                    {avatarError || (!displayPhoto && false) ? (
-                      <div className="flex h-full w-full items-center justify-center bg-[#d9f8f6] text-2xl font-semibold text-[#13b8b0]">
-                        {initials(draft.firstName || draft.lastName, "", displayName)}
-                      </div>
-                    ) : (
-                      <img
-                        src={displayPhoto}
-                        alt={displayName}
-                        className="h-full w-full object-cover"
-                        onError={() => setAvatarError("bad-image")}
-                      />
-                    )}
+                  {/* Raised plate with the photo sunk into it. The carved edge
+                      is an overlay rather than a shadow on the container — an
+                      opaque photo would sit on top of an inset shadow and hide
+                      it completely. */}
+                  <div className="neu-lift rounded-full p-2">
+                    <div className="relative h-28 w-28 overflow-hidden rounded-full bg-[#d9f8f6] lg:h-32 lg:w-32">
+                      {avatarError || (!displayPhoto && false) ? (
+                        <div className="flex h-full w-full items-center justify-center bg-[#d9f8f6] text-2xl font-semibold text-[#13b8b0]">
+                          {initials(draft.firstName || draft.lastName, "", displayName)}
+                        </div>
+                      ) : (
+                        <img
+                          src={displayPhoto}
+                          alt={displayName}
+                          className="h-full w-full object-cover"
+                          onError={() => setAvatarError("bad-image")}
+                        />
+                      )}
+                      <span className="pointer-events-none absolute inset-0 rounded-full shadow-[inset_5px_5px_11px_rgba(142,174,187,.5),inset_-5px_-5px_11px_rgba(255,255,255,.95)]" />
+                    </div>
                   </div>
                 </div>
 
@@ -444,7 +451,7 @@ export default function ProfilePage() {
                       type="button"
                       onClick={discard}
                       disabled={saving}
-                      className="btn inline-flex items-center rounded-full border border-[#d7e8eb] bg-white/70 px-5 py-3 text-sm font-semibold text-[#53617d] transition hover:border-[#172039] disabled:opacity-60"
+                      className="btn neu-btn inline-flex items-center rounded-full px-5 py-3 text-sm font-semibold transition disabled:opacity-60"
                     >
                       <RotateCcw size={15} className="mr-2" /> Discard
                     </button>
@@ -452,7 +459,7 @@ export default function ProfilePage() {
                       type="button"
                       onClick={save}
                       disabled={saving || !isDirty || usernameState === "taken"}
-                      className="btn inline-flex items-center rounded-full bg-[#13b8b0] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0d9488] disabled:opacity-50"
+                      className="btn neu-btn-accent inline-flex items-center rounded-full px-5 py-3 text-sm font-semibold transition disabled:opacity-50"
                     >
                       {saving ? <Loader2 size={15} className="mr-2 animate-spin" /> : <Save size={15} className="mr-2" />}
                       {saving ? "Saving…" : "Save changes"}
@@ -462,7 +469,7 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     onClick={startEditing}
-                    className="btn inline-flex items-center rounded-full bg-[#172039] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#13b8b0]"
+                    className="btn neu-btn-dark inline-flex items-center rounded-full px-5 py-3 text-sm font-semibold transition"
                   >
                     <Pencil size={15} className="mr-2" /> Edit profile
                   </button>
@@ -478,7 +485,7 @@ export default function ProfilePage() {
                 { label: "Sign-in method", value: signInLabel },
                 { label: "Role", value: user?.role ?? "user" },
               ].map(stat => (
-                <div key={stat.label} className="glass rounded-2xl px-5 py-4">
+                <div key={stat.label} className="neu-card rounded-2xl px-5 py-4">
                   <dt className="font-mono text-[9px] uppercase tracking-[.16em] text-[#71809f]">{stat.label}</dt>
                   <dd className="mt-2 flex items-center gap-2 font-display text-xl font-semibold capitalize tracking-[-.03em]">
                     {stat.label === "Sign-in method" && isGoogleAccount && (
@@ -496,7 +503,7 @@ export default function ProfilePage() {
           {/* ---------------- Main column ---------------- */}
           <div className="space-y-6">
             {/* About */}
-            <section className="glass rounded-[1.75rem] p-6 lg:p-8">
+            <section className="neu-card rounded-[1.75rem] p-6 lg:p-8">
               <div className="flex items-center justify-between gap-4">
                 <h2 className="font-display text-xl font-semibold tracking-[-.04em]">About</h2>
                 {!editing && !user?.bio && <span className="text-xs text-[#a1a19b]">Nothing here yet</span>}
@@ -528,7 +535,7 @@ export default function ProfilePage() {
             </section>
 
             {/* Identity */}
-            <section className="glass rounded-[1.75rem] p-6 lg:p-8">
+            <section className="neu-card rounded-[1.75rem] p-6 lg:p-8">
               <h2 className="font-display text-xl font-semibold tracking-[-.04em]">Identity</h2>
 
               {editing ? (
@@ -563,7 +570,7 @@ export default function ProfilePage() {
                         onChange={event => set("username", event.target.value.replace(/[^a-zA-Z0-9_.-]/g, ""))}
                         placeholder="nitin"
                         aria-invalid={usernameState === "taken"}
-                        className={`${inputClass} ${usernameState === "taken" ? "border-[#a33e23]" : ""}`}
+                        className={`${inputClass} ${usernameState === "taken" ? "neu-well-invalid" : ""}`}
                       />
                     </Field>
                   </div>
@@ -578,7 +585,7 @@ export default function ProfilePage() {
                         type="button"
                         onClick={() => set("avatarSource", "google")}
                         aria-pressed={draft.avatarSource === "google"}
-                        className={`flex items-start gap-3 rounded-xl border-2 px-4 py-3.5 text-left transition ${
+                        className={`neu-lift flex items-start gap-3 rounded-xl border-2 px-4 py-3.5 text-left transition ${
                           draft.avatarSource === "google"
                             ? "border-[#13b8b0] bg-[#e9f7f6]"
                             : "border-[#d7e8eb] bg-white hover:border-[#b9d6db]"
@@ -603,7 +610,7 @@ export default function ProfilePage() {
                         type="button"
                         onClick={() => set("avatarSource", "manual")}
                         aria-pressed={draft.avatarSource === "manual"}
-                        className={`flex items-start gap-3 rounded-xl border-2 px-4 py-3.5 text-left transition ${
+                        className={`neu-lift flex items-start gap-3 rounded-xl border-2 px-4 py-3.5 text-left transition ${
                           draft.avatarSource === "manual"
                             ? "border-[#13b8b0] bg-[#e9f7f6]"
                             : "border-[#d7e8eb] bg-white hover:border-[#b9d6db]"
@@ -669,7 +676,7 @@ export default function ProfilePage() {
             </section>
 
             {/* Links */}
-            <section className="glass rounded-[1.75rem] p-6 lg:p-8">
+            <section className="neu-card rounded-[1.75rem] p-6 lg:p-8">
               <h2 className="font-display text-xl font-semibold tracking-[-.04em]">Links</h2>
 
               {editing ? (
@@ -701,7 +708,7 @@ export default function ProfilePage() {
           {/* ---------------- Side column ---------------- */}
           <aside className="space-y-6">
             {/* Security */}
-            <section className="glass rounded-[1.75rem] p-6">
+            <section className="neu-card rounded-[1.75rem] p-6">
               <div className="flex items-center gap-2.5">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#d9f8f6] text-[#13b8b0]">
                   <KeyRound size={17} />
@@ -716,7 +723,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={sendReset}
                 disabled={resetting}
-                className="btn mt-5 inline-flex w-full items-center justify-center rounded-full border border-[#d7e8eb] bg-white px-5 py-3 text-sm font-semibold text-[#172039] transition hover:border-[#13b8b0] disabled:opacity-60"
+                className="btn neu-btn mt-5 inline-flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition disabled:opacity-60"
               >
                 {resetting ? <Loader2 size={15} className="mr-2 animate-spin" /> : <KeyRound size={15} className="mr-2" />}
                 {resetting ? "Sending…" : "Reset password"}
@@ -724,7 +731,7 @@ export default function ProfilePage() {
             </section>
 
             {/* Session */}
-            <section className="glass rounded-[1.75rem] p-6">
+            <section className="neu-card rounded-[1.75rem] p-6">
               <div className="flex items-center gap-2.5">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#d9f8f6] text-[#13b8b0]">
                   <Link2 size={17} />
@@ -735,14 +742,14 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => void logout()}
-                className="btn mt-5 inline-flex w-full items-center justify-center rounded-full bg-[#172039] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#13b8b0]"
+                className="btn neu-btn-dark mt-5 inline-flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition"
               >
                 Log out
               </button>
             </section>
 
             {/* Danger zone */}
-            <section className="rounded-[1.75rem] border border-[#f0c8bd] bg-[#fff6f3] p-6">
+            <section className="neu-card-danger rounded-[1.75rem] p-6">
               <div className="flex items-center gap-2.5">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#ffe0d7] text-[#a33e23]">
                   <Trash2 size={17} />
@@ -760,7 +767,7 @@ export default function ProfilePage() {
                     setShowDelete(true);
                     setDeleteText("");
                   }}
-                  className="btn mt-5 inline-flex w-full items-center justify-center rounded-full border border-[#e0a692] bg-white px-5 py-3 text-sm font-semibold text-[#a33e23] transition hover:bg-[#ffe0d7]"
+                  className="btn neu-btn-danger-ghost mt-5 inline-flex w-full items-center justify-center rounded-full px-5 py-3 text-sm font-semibold transition"
                 >
                   <Trash2 size={15} className="mr-2" /> Delete account
                 </button>
@@ -785,7 +792,7 @@ export default function ProfilePage() {
                         setShowDelete(false);
                         setDeleteText("");
                       }}
-                      className="btn flex-1 rounded-full border border-[#e0a692] bg-white px-4 py-2.5 text-sm font-semibold text-[#53617d] transition hover:bg-[#f8ffff]"
+                      className="btn neu-btn flex-1 rounded-full px-4 py-2.5 text-sm font-semibold transition"
                     >
                       Cancel
                     </button>
@@ -793,7 +800,7 @@ export default function ProfilePage() {
                       type="button"
                       onClick={confirmDelete}
                       disabled={deleteText.trim().toUpperCase() !== "DELETE" || deleting}
-                      className="btn flex-1 inline-flex items-center justify-center rounded-full bg-[#a33e23] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#8a3520] disabled:opacity-50"
+                      className="btn neu-btn-danger flex-1 inline-flex items-center justify-center rounded-full px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50"
                     >
                       {deleting && <Loader2 size={15} className="mr-2 animate-spin" />}
                       {deleting ? "Deleting…" : "Delete"}

@@ -8,6 +8,7 @@ import {
   InsertUser,
   orders,
   paymentSettings,
+  productTypes,
   products,
   reviews,
   subscribers,
@@ -283,7 +284,38 @@ export async function listCategories() {
   return db.select().from(categories).orderBy(asc(categories.name));
 }
 
-export async function listProducts(filters?: { categoryId?: number; type?: 'SOURCE_CODE' | 'PROMPT' | 'PROJECT'; search?: string; minPrice?: number; maxPrice?: number; sort?: 'newest' | 'price' | 'popular' }) {
+/** Product types are admin-managed rows; products store the slug in `type`. */
+export async function listProductTypes() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(productTypes).orderBy(asc(productTypes.name));
+}
+
+/** Count products using a given type slug — blocks deleting a type in use. */
+export async function countProductsByType(typeSlug: string) {
+  const db = await getDb();
+  if (!db) return 0;
+  const rows = await db.select({ count: sql<number>`count(*)` }).from(products).where(eq(products.type, typeSlug));
+  return Number(rows[0]?.count ?? 0);
+}
+
+/** Count products in a category — blocks deleting a category in use. */
+export async function countProductsByCategory(categoryId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const rows = await db.select({ count: sql<number>`count(*)` }).from(products).where(eq(products.categoryId, categoryId));
+  return Number(rows[0]?.count ?? 0);
+}
+
+/** Count orders tied to a user — deleting a buyer would orphan them. */
+export async function countOrdersByUser(userId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  const rows = await db.select({ count: sql<number>`count(*)` }).from(orders).where(eq(orders.userId, userId));
+  return Number(rows[0]?.count ?? 0);
+}
+
+export async function listProducts(filters?: { categoryId?: number; type?: string; search?: string; minPrice?: number; maxPrice?: number; sort?: 'newest' | 'price' | 'popular' }) {
   const db = await getDb();
   if (!db) return [];
   const conditions = [eq(products.isPublished, true)];

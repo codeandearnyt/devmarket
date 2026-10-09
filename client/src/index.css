@@ -123,3 +123,131 @@ input, select, textarea { background: rgba(255,255,255,.72) !important; border-c
   .auth-brand .auth-orbit-slot { margin-top: .5rem; }
   .auth-brand .auth-eyebrow { margin-top: .75rem; }
 }
+
+/* =====================================================================
+   Neumorphism — profile page only
+   ---------------------------------------------------------------------
+   Every surface shares one flat base colour and is shaped purely by two
+   opposing shadows: a light one from the top-left and a shade falling to
+   the bottom-right. That pairing is what makes elements look moulded out
+   of the same slab, so hairline borders are dropped here — a hard edge
+   flattens the illusion instantly.
+
+   Two rules keep this honest:
+   1. Text colours are untouched, so contrast does not move. Surfaces are
+      kept *lighter* than the base for exactly that reason.
+   2. The whole block is scoped to `.profile-page`, so the rest of the
+      site keeps its existing glass treatment.
+
+   Some rules need `!important`: index.css sets global `section` border and
+   `input` background rules with that flag, so a scoped class has to carry
+   it too in order to win.
+   ===================================================================== */
+.profile-page {
+  --neu-base: #e4eef2;
+  --neu-surface: #f2f9fb;
+  --neu-shade: rgba(142, 174, 187, .55);
+  --neu-light: rgba(255, 255, 255, .95);
+  --neu-out:
+    10px 10px 22px var(--neu-shade),
+    -10px -10px 22px var(--neu-light);
+  --neu-in:
+    inset 6px 6px 12px var(--neu-shade),
+    inset -6px -6px 12px var(--neu-light);
+  background: var(--neu-base);
+}
+
+/* Raised plate: cards, stat tiles, the avatar surround. */
+.profile-page .neu-card {
+  background: var(--neu-surface);
+  border-color: transparent !important;
+  box-shadow: var(--neu-out);
+}
+/* Warm variant so the danger zone keeps its identity in the new language. */
+.profile-page .neu-card-danger {
+  background: #fdf1ec;
+  border-color: transparent !important;
+  box-shadow: 10px 10px 22px rgba(206, 165, 150, .5), -10px -10px 22px var(--neu-light);
+}
+
+/* Shadow only — for elements whose background/border are already decided
+   by Tailwind (selected states, accent panels). */
+.profile-page .neu-lift { box-shadow: var(--neu-out); }
+
+/* Carved well: anything that receives input. */
+.profile-page .neu-well {
+  background: var(--neu-surface) !important;
+  border-color: transparent !important;
+  box-shadow: var(--neu-in) !important;
+}
+.profile-page .neu-well:focus {
+  box-shadow: var(--neu-in), 0 0 0 4px rgba(19, 184, 176, .22) !important;
+}
+
+/* Buttons stand proud of the surface and sink into it when pressed. */
+.profile-page .neu-btn {
+  background: var(--neu-surface);
+  border-color: transparent !important;
+  color: #172039;
+  box-shadow: var(--neu-out);
+  transition: box-shadow .16s ease, transform .16s ease, background-color .16s ease;
+}
+.profile-page .neu-btn:active { box-shadow: var(--neu-in); transform: translateY(1px); }
+.profile-page .neu-btn:disabled { opacity: .55; }
+
+.profile-page .neu-btn-accent {
+  background: #13b8b0;
+  border-color: transparent !important;
+  color: #fff;
+  box-shadow: 8px 8px 18px rgba(19, 184, 176, .4), -8px -8px 18px var(--neu-light);
+}
+.profile-page .neu-btn-accent:hover { background: #0fa9a2; }
+.profile-page .neu-btn-accent:active { box-shadow: var(--neu-in); transform: translateY(1px); }
+
+.profile-page .neu-btn-dark {
+  background: #172039;
+  border-color: transparent !important;
+  color: #fff;
+  box-shadow: 8px 8px 18px rgba(23, 32, 57, .34), -8px -8px 18px var(--neu-light);
+}
+.profile-page .neu-btn-dark:hover { background: #1f2b4d; }
+.profile-page .neu-btn-dark:active { box-shadow: var(--neu-in); transform: translateY(1px); }
+
+/* Small link chips (Website / GitHub / LinkedIn). */
+.profile-page .neu-chip {
+  background: var(--neu-surface);
+  border-color: transparent !important;
+  box-shadow: 5px 5px 12px var(--neu-shade), -5px -5px 12px var(--neu-light);
+}
+
+/* Destructive controls: same extruded language, warm palette, so the danger
+   zone still reads as danger without importing a foreign visual style. */
+.profile-page .neu-btn-danger {
+  background: #a33e23;
+  border-color: transparent !important;
+  color: #fff;
+  box-shadow: 8px 8px 18px rgba(163, 62, 35, .34), -8px -8px 18px var(--neu-light);
+}
+.profile-page .neu-btn-danger:hover { background: #8a3520; }
+.profile-page .neu-btn-danger:active { box-shadow: var(--neu-in); transform: translateY(1px); }
+.profile-page .neu-btn-danger:disabled { opacity: .5; }
+
+.profile-page .neu-btn-danger-ghost {
+  background: #fdefeb;
+  border-color: transparent !important;
+  color: #a33e23;
+  box-shadow: 6px 6px 14px rgba(206, 165, 150, .5), -6px -6px 14px var(--neu-light);
+}
+.profile-page .neu-btn-danger-ghost:hover { background: #ffe4dc; }
+.profile-page .neu-btn-danger-ghost:active { box-shadow: var(--neu-in); transform: translateY(1px); }
+
+/* A rejected field needs a signal, and borders are deliberately absent from
+   this page's inputs — so it gets a warm recess plus a halo instead. Declared
+   after :focus so the error still wins while the field is being typed in. */
+.profile-page .neu-well.neu-well-invalid,
+.profile-page .neu-well.neu-well-invalid:focus {
+  box-shadow:
+    inset 6px 6px 12px rgba(206, 150, 135, .55),
+    inset -6px -6px 12px var(--neu-light),
+    0 0 0 4px rgba(163, 62, 35, .16) !important;
+}

@@ -14,7 +14,14 @@ import DevMarketIcon from "@/assets/dev-market-icon.png";
 export type ProductCardData = { id: number; title: string; slug: string; type: string; shortDescription: string; description: string; price: number; discountPrice: number | null; thumbnailUrl: string; techStack?: string[]; salesCount: number; categoryId?: number; fileUrl?: string; isFeatured?: boolean };
 
 export function money(value: number) { return `₹${value.toLocaleString("en-IN")}`; }
-export function typeLabel(type: string) { return type === "SOURCE_CODE" ? "Source code" : type === "PROMPT" ? "AI prompt" : "Full project"; }
+/** Types are admin-managed rows now, so unknown slugs fall back to a
+ *  prettified version of the slug itself instead of a wrong label. */
+export function typeLabel(type: string) {
+  if (type === "SOURCE_CODE") return "Source code";
+  if (type === "PROMPT") return "AI prompt";
+  if (type === "PROJECT") return "Full project";
+  return type.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+}
 
 export function ProductCard({ product, index = 0 }: { product: ProductCardData; index?: number }) {
   const current = product.discountPrice ?? product.price;
@@ -67,13 +74,18 @@ export default function Home() {
   const [maxPrice, setMaxPrice] = useState("");
   const [sort, setSort] = useState<"newest" | "price" | "popular">("popular");
   const featuredQuery = trpc.catalog.featured.useQuery();
-  const productFilters = useMemo(() => ({ categoryId: activeCategory, type: activeType === "ALL" ? undefined : activeType as "SOURCE_CODE" | "PROMPT" | "PROJECT", search: search.trim() || undefined, minPrice: minPrice ? Number(minPrice) : undefined, maxPrice: maxPrice ? Number(maxPrice) : undefined, sort }), [activeCategory, activeType, search, minPrice, maxPrice, sort]);
+  const typesQuery = trpc.catalog.types.useQuery();
+  const productFilters = useMemo(() => ({ categoryId: activeCategory, type: activeType === "ALL" ? undefined : activeType, search: search.trim() || undefined, minPrice: minPrice ? Number(minPrice) : undefined, maxPrice: maxPrice ? Number(maxPrice) : undefined, sort }), [activeCategory, activeType, search, minPrice, maxPrice, sort]);
   const productsQuery = trpc.catalog.products.useQuery(productFilters);
   const categoriesQuery = trpc.catalog.categories.useQuery();
   const allProducts = (productsQuery.data ?? []) as ProductCardData[];
   const featured = (featuredQuery.data ?? []) as ProductCardData[];
   const filtered = useMemo(() => allProducts.filter(p => (activeType === "ALL" || p.type === activeType) && `${p.title} ${p.shortDescription}`.toLowerCase().includes(search.toLowerCase())), [allProducts, activeType, search]);
   const categories = categoriesQuery.data ?? [];
+  const typeTabs = useMemo(() => [
+    { key: "ALL", label: "All products" },
+    ...(typesQuery.data ?? []).map(type => ({ key: type.slug, label: type.name })),
+  ], [typesQuery.data]);
   return <div className="liquid-page min-h-screen overflow-hidden bg-[#eef8fa] text-[#172039]"><ScrollDepthBackground />
     <Header live={live} />
     <main>
@@ -86,7 +98,7 @@ export default function Home() {
       </section>
 
       <section id="explore" className="mx-auto max-w-[1280px] px-5 py-20 lg:px-8"><div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><p className="font-mono text-[11px] uppercase tracking-[.2em] text-[#13b8b0]">The library</p><h2 className="mt-3 font-display text-4xl font-semibold tracking-[-.06em] md:text-5xl">Find your next shortcut.</h2></div><div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.16em] text-[#53617d]"><Sparkles size={15} className="text-[#13b8b0]" /> Hand-picked. No filler.</div></div>
-        <div className="mb-8 flex flex-col gap-4 border-y border-[#d7e8eb] py-4 md:flex-row md:items-center md:justify-between"><div className="flex flex-wrap gap-2">{[{ key: "ALL", label: "All products" }, { key: "SOURCE_CODE", label: "Source code" }, { key: "PROMPT", label: "AI prompts" }, { key: "PROJECT", label: "Full projects" }].map(tab => <button key={tab.key} onClick={() => { setActiveType(tab.key); track("catalog_filter_changed", { filter: "type", value: tab.key }); }} className={`btn rounded-full px-4 py-2 text-sm font-semibold ${activeType === tab.key ? "bg-[#172039] text-white" : "text-[#53617d] hover:bg-[#e9f7f6]"}`}>{tab.label}</button>)}</div><label className="flex items-center gap-3 rounded-full border border-[#d7e8eb] bg-[#f8ffff] px-4 py-2.5 text-[#53617d] md:w-64"><Search size={16} /><input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => { if (e.key === "Enter") track("catalog_filter_changed", { filter: "search", value: e.currentTarget.value }); }} placeholder="Search the library" className="w-full bg-transparent text-sm outline-none placeholder:text-[#a1a19b]" /></label></div>
+        <div className="mb-8 flex flex-col gap-4 border-y border-[#d7e8eb] py-4 md:flex-row md:items-center md:justify-between"><div className="flex flex-wrap gap-2">{typeTabs.map(tab => <button key={tab.key} onClick={() => { setActiveType(tab.key); track("catalog_filter_changed", { filter: "type", value: tab.key }); }} className={`btn rounded-full px-4 py-2 text-sm font-semibold ${activeType === tab.key ? "bg-[#172039] text-white" : "text-[#53617d] hover:bg-[#e9f7f6]"}`}>{tab.label}</button>)}</div><label className="flex items-center gap-3 rounded-full border border-[#d7e8eb] bg-[#f8ffff] px-4 py-2.5 text-[#53617d] md:w-64"><Search size={16} /><input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => { if (e.key === "Enter") track("catalog_filter_changed", { filter: "search", value: e.currentTarget.value }); }} placeholder="Search the library" className="w-full bg-transparent text-sm outline-none placeholder:text-[#a1a19b]" /></label></div>
         <div className="mt-4 grid gap-3 rounded-2xl border border-[#d7e8eb] bg-[#f8ffff]/75 p-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="text-xs font-semibold text-[#53617d]">Category<select value={activeCategory ?? "all"} onChange={e => { const value = e.target.value === "all" ? undefined : Number(e.target.value); setActiveCategory(value); track("catalog_filter_changed", { filter: "category", value: value ?? "all" }); }} className="mt-2 w-full rounded-xl border border-[#d7e8eb] bg-transparent px-3 py-2.5 text-sm font-normal text-[#172039] outline-none focus:border-[#13b8b0]"><option value="all">All categories</option>{categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
           <label className="text-xs font-semibold text-[#53617d]">Minimum price<input type="number" min="0" inputMode="numeric" value={minPrice} onChange={e => { setMinPrice(e.target.value); track("catalog_filter_changed", { filter: "min_price", value: e.target.value }); }} placeholder="₹0" className="mt-2 w-full rounded-xl border border-[#d7e8eb] bg-transparent px-3 py-2.5 text-sm font-normal text-[#172039] outline-none placeholder:text-[#a1a19b] focus:border-[#13b8b0]" /></label>

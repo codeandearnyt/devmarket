@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, Check, ChevronRight, CreditCard, Eye, EyeOff, FolderPlus, LayoutDashboard, Loader2, Lock, LogOut, MessageSquareText, PackagePlus, Settings2, ShieldCheck, Users, X } from "lucide-react";
+import { BarChart3, BookOpen, Check, ChevronRight, CreditCard, Eye, EyeOff, FolderPlus, FolderTree, LayoutDashboard, Layers3, Loader2, Lock, LogOut, MessageSquareText, PackagePlus, Settings2, ShieldCheck, Users, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
@@ -14,6 +14,9 @@ import AdminInsightsPanel from "@/components/AdminInsightsPanel";
 import ReviewModerationPanel from "@/components/ReviewModerationPanel";
 import ProductImageDropzone from "@/components/ProductImageDropzone";
 import ProductForm, { emptyProductDraft, type ProductDraft } from "@/components/ProductForm";
+import CategoryManager from "@/components/CategoryManager";
+import ProductTypeManager from "@/components/ProductTypeManager";
+import UserManager from "@/components/UserManager";
 
 const statusStyles: Record<string, string> = { PENDING: "bg-[#fff4c6] text-[#8a6500]", DELIVERED: "bg-[#c7f76d] text-[#172039]", REJECTED: "bg-[#ffe0d7] text-[#a33e23]" };
 
@@ -54,6 +57,7 @@ export default function AdminDashboard() {
   const approve = trpc.admin.approveOrder.useMutation({ onSuccess: () => orders.refetch() });
   const reject = trpc.admin.rejectOrder.useMutation({ onSuccess: () => orders.refetch() });
   const categories = trpc.admin.categories.useQuery(undefined, { enabled: isAdmin });
+  const productTypes = trpc.admin.productTypes.useQuery(undefined, { enabled: isAdmin });
   const createProduct = trpc.admin.createProduct.useMutation({ onSuccess: () => { products.refetch(); setShowProductForm(false); setEditingProductId(null); } });
   const updateProduct = trpc.admin.updateProduct.useMutation({ onSuccess: () => { products.refetch(); setShowProductForm(false); setEditingProductId(null); } });
 
@@ -177,8 +181,10 @@ export default function AdminDashboard() {
     { id: "overview", label: "Overview", icon: <LayoutDashboard size={16} /> },
     { id: "insights", label: "Insights", icon: <BarChart3 size={16} /> },
     { id: "reviews", label: "Reviews", icon: <MessageSquareText size={16} /> },
-    { id: "queue", label: `Review queue${pending.length ? ` · ${pending.length}` : ""}`, icon: <ShieldCheck size={16} /> },
     { id: "products", label: "Products", icon: <PackagePlus size={16} /> },
+    { id: "categories", label: "Categories", icon: <FolderTree size={16} /> },
+    { id: "types", label: "Types", icon: <Layers3 size={16} /> },
+    { id: "users", label: "Users", icon: <Users size={16} /> },
     { id: "blog", label: "Blog", icon: <BookOpen size={16} /> },
     { id: "settings", label: "Settings", icon: <Settings2 size={16} /> },
   ];
@@ -186,7 +192,7 @@ export default function AdminDashboard() {
   return (
     <div className="liquid-page min-h-screen bg-[#eef8fa] text-[#172039]">
       <div className="flex min-h-screen flex-col lg:flex-row">
-        <aside className="admin-glass-nav border-b border-[#d7e8eb] bg-[#172039] text-white lg:min-h-screen lg:w-72 lg:border-b-0 lg:border-r lg:border-[#172039]">
+        <aside className="admin-glass-nav border-b border-[#d7e8eb] bg-[#172039] text-white lg:min-h-screen lg:w-72 lg:border-b-0 lg:border-r lg:border-[#172039] fixed max-lg:static lg:inset-y-0 lg:left-0 z-40 flex flex-col">
           <div className="flex items-center justify-between px-6 py-6 lg:block">
             <Link href="/" className="flex items-center gap-3">
               <img src={DevMarketIcon} alt="DevMarket" className="h-9 w-9 rounded-xl object-contain" />
@@ -195,11 +201,10 @@ export default function AdminDashboard() {
             </Link>
             <span className="hidden font-mono text-[10px] text-white/45 lg:mt-2 lg:block">COMMAND CENTER / 01</span>
           </div>
-          <nav className="flex gap-2 overflow-x-auto px-4 pb-4 lg:mt-12 lg:block lg:px-4">
+          <nav className="flex gap-2 overflow-x-auto px-4 pb-4 lg:mt-8 lg:block lg:flex-1 lg:overflow-y-auto lg:px-4 lg:pb-0">
             {nav.map(item => (
               <button key={item.id} onClick={() => setTab(item.id)} className={`flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition lg:mb-2 lg:w-full ${tab === item.id ? "bg-[#c7f76d] text-[#172039]" : "text-white/65 hover:bg-white/10 hover:text-white"}`}>
                 {item.icon}<span>{item.label}</span>
-                {item.id === "queue" && pending.length > 0 ? <span className="ml-auto rounded-full bg-[#13b8b0] px-2 py-0.5 text-[10px] text-white">{pending.length}</span> : null}
               </button>
             ))}
           </nav>
@@ -220,7 +225,7 @@ export default function AdminDashboard() {
             </div>
           </div>
         </aside>
-        <main className="flex-1 px-5 py-7 lg:px-10 lg:py-10">
+        <main className="flex-1 px-5 py-7 lg:ml-72 lg:px-10 lg:py-10">
           <div className="mx-auto max-w-[1180px]">
             <div className="flex items-start justify-between">
               <div>
@@ -243,7 +248,7 @@ export default function AdminDashboard() {
             <div className="mt-9 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <Metric label="Gross revenue" value={money(stats.data?.revenue ?? 0)} detail="Verified paid orders" tone="coral" />
               <Metric label="Total sales" value={String(stats.data?.totalSales ?? 0).padStart(2, "0")} detail="All-time deliveries" />
-              <Metric label="Review queue" value={String(stats.data?.pendingApprovals ?? pending.length).padStart(2, "0")} detail="Manual proof approvals" tone="cream" />
+              <Metric label="Pending proofs" value={String(stats.data?.pendingApprovals ?? pending.length).padStart(2, "0")} detail="Manual QR approvals" tone="cream" />
               <Metric label="Catalog" value={String(stats.data?.totalProducts ?? products.data?.length ?? 0).padStart(2, "0")} detail="Published products" tone="lime" />
             </div>
             <div className="mt-8 grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
@@ -277,7 +282,6 @@ export default function AdminDashboard() {
           </>}
           {tab === "insights" && <AdminInsightsPanel />}
           {tab === "reviews" && <ReviewModerationPanel />}
-          {tab === "queue" && <ReviewModerationPanel />}
           {tab === "products" && <>
             <div className="mb-6 flex items-center justify-between">
               <div><p className="font-mono text-[10px] uppercase tracking-[.16em] text-[#71809f]">Catalog</p><h2 className="mt-2 font-display text-2xl font-semibold tracking-[-.05em]">Products</h2></div>
@@ -287,6 +291,7 @@ export default function AdminDashboard() {
               <ProductForm
                 draft={productDraft}
                 categories={categories.data ?? []}
+                types={productTypes.data ?? []}
                 pending={createProduct.isPending || updateProduct.isPending}
                 submitLabel={editingProductId ? "Save changes" : "Create product"}
                 onChange={setProductDraft}
@@ -313,6 +318,9 @@ export default function AdminDashboard() {
             </div>
           </>}
           {tab === "blog" && <BlogAdminPanel />}
+          {tab === "categories" && <CategoryManager />}
+          {tab === "types" && <ProductTypeManager />}
+          {tab === "users" && <UserManager operatorId={adminUser?.id} />}
           {tab === "settings" && <SettingsPanel />}
         </main>
       </div>

@@ -11,7 +11,6 @@ import {
 } from "drizzle-orm/pg-core";
 
 const roleEnum = pgEnum("role", ["user", "admin"]);
-const typeEnum = pgEnum("type", ["SOURCE_CODE", "PROMPT", "PROJECT"]);
 const paymentMethodEnum = pgEnum("paymentMethod", ["RAZORPAY", "MANUAL_QR"]);
 const orderStatusEnum = pgEnum("orderStatus", ["PENDING", "PAID", "FAILED", "REJECTED", "DELIVERED"]);
 const blogStatusEnum = pgEnum("status", ["DRAFT", "PUBLISHED"]);
@@ -48,13 +47,27 @@ export const categories = pgTable("categories", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+/**
+ * Product types used to be a Postgres enum, which meant adding one required a
+ * migration. Making it a table lets admins add, rename and remove types from
+ * the console; `products.type` stores the slug and the storefront resolves the
+ * display name from here.
+ */
+export const productTypes = pgTable("productTypes", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 120 }).notNull(),
+  slug: varchar("slug", { length: 140 }).notNull().unique(),
+  description: text("description"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   title: varchar("title", { length: 220 }).notNull(),
   slug: varchar("slug", { length: 240 }).notNull().unique(),
   description: text("description").notNull(),
   shortDescription: varchar("shortDescription", { length: 320 }).notNull(),
-  type: typeEnum("type").notNull(),
+  type: varchar("type", { length: 64 }).notNull(),
   categoryId: integer("categoryId").notNull(),
   price: integer("price").notNull(),
   discountPrice: integer("discountPrice"),
@@ -113,6 +126,9 @@ export const blogPosts = pgTable("blogPosts", {
   excerpt: varchar("excerpt", { length: 320 }).notNull(),
   content: text("content").notNull(),
   coverImageUrl: text("coverImageUrl"),
+  /** Structured blocks (heading / paragraph / image / iframe) written by the
+   *  block editor. `content` stays a markdown mirror for legacy readers. */
+  blocks: json("blocks"),
   category: varchar("category", { length: 120 }).notNull(),
   tags: json("tags"),
   authorName: varchar("authorName", { length: 160 }).notNull(),
