@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Loader2, X } from "lucide-react";
-import ProductImageDropzone from "@/components/ProductImageDropzone";
+import { BadgeIndianRupee, Loader2, X } from "lucide-react";
+import ImageField from "@/components/ImageField";
+import ProductImageGallery from "@/components/ProductImageGallery";
 
 export type ProductDraft = {
   title: string;
@@ -20,7 +21,7 @@ export const emptyProductDraft: ProductDraft = {
   slug: "",
   shortDescription: "",
   description: "",
-  type: "PROJECT",
+  type: "source-code",
   categoryId: 0,
   price: 0,
   thumbnailUrl: "",
@@ -43,9 +44,10 @@ type Category = { id: number; name: string };
 /**
  * Create/edit form for a catalogue product.
  *
- * `ProductImageDropzone` owns the preview gallery (it uploads and returns
- * URLs), so it is wired through its `value`/`onChange` props and the first
- * uploaded image doubles as the cover thumbnail.
+ * Pricing is either Free ($0) or a custom amount the admin types. Images come
+ * from a URL or a browsed local file (stored inline as base64) — managed
+ * storage is not configured in every environment, so the old server-upload
+ * dropzone has been replaced by the URL + base64 fields.
  */
 export type ProductTypeOption = { id: number; name: string; slug: string };
 
@@ -69,6 +71,19 @@ export default function ProductForm({
   onCancel: () => void;
 }) {
   const [showSlugField, setShowSlugField] = useState(Boolean(draft.slug));
+  const [pricingMode, setPricingModeState] = useState<"free" | "custom">(draft.price === 0 ? "free" : "custom");
+  const [customPrice, setCustomPrice] = useState<number>(draft.price || 499);
+
+  // Free pins the price to $0; Custom restores the last typed amount.
+  const setPricingMode = (mode: "free" | "custom") => {
+    setPricingModeState(mode);
+    if (mode === "free") set("price", 0);
+    else {
+      const next = customPrice > 0 ? customPrice : 499;
+      setCustomPrice(next);
+      set("price", next);
+    }
+  };
 
   const set = <K extends keyof ProductDraft>(key: K, value: ProductDraft[K]) => {
     onChange({ ...draft, [key]: value });
@@ -183,17 +198,64 @@ export default function ProductForm({
           </label>
         </div>
 
-        <label className="block text-sm font-semibold">
-          Price (₹)
-          <input
-            required
-            type="number"
-            min={0}
-            value={draft.price || ""}
-            onChange={event => set("price", Number(event.target.value))}
-            className="mt-2 w-full rounded-xl border border-[#d7e8eb] bg-white px-4 py-3 font-normal outline-none transition focus:border-[#13b8b0]"
-          />
-        </label>
+        <div className="block text-sm font-semibold">
+          <span>Pricing</span>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            <label
+              className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition ${pricingMode === "free" ? "border-[#13b8b0] bg-[#e9f7f6]" : "border-[#d7e8eb] bg-white hover:border-[#b9d6db]"}`}
+            >
+              <input
+                type="radio"
+                name="product-pricing"
+                checked={pricingMode === "free"}
+                onChange={() => setPricingMode("free")}
+                className="mt-1 h-4 w-4 accent-[#13b8b0]"
+              />
+              <span>
+                <span className="flex items-center gap-1.5 font-semibold text-[#172039]">
+                  <BadgeIndianRupee size={14} /> Free
+                </span>
+                <span className="mt-1 block text-xs font-normal text-[#53617d]">$0 — totally free, shows “Free” in the storefront.</span>
+              </span>
+            </label>
+            <label
+              className={`cursor-pointer rounded-xl border p-4 transition ${pricingMode === "custom" ? "border-[#13b8b0] bg-[#e9f7f6]" : "border-[#d7e8eb] bg-white hover:border-[#b9d6db]"}`}
+            >
+              <span className="flex items-start gap-3">
+                <input
+                  type="radio"
+                  name="product-pricing"
+                  checked={pricingMode === "custom"}
+                  onChange={() => setPricingMode("custom")}
+                  className="mt-1 h-4 w-4 accent-[#13b8b0]"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold text-[#172039]">Custom price</span>
+                  <span className="mt-1 block text-xs font-normal text-[#53617d]">Set any amount in ₹.</span>
+                  {pricingMode === "custom" && (
+                    <input
+                      required
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={customPrice || ""}
+                      onChange={event => {
+                        const next = Math.max(0, Number(event.target.value));
+                        setCustomPrice(next);
+                        set("price", next);
+                      }}
+                      placeholder="499"
+                      className="mt-3 w-full rounded-xl border border-[#d7e8eb] bg-white px-3 py-2.5 text-sm font-normal outline-none transition focus:border-[#13b8b0]"
+                    />
+                  )}
+                </span>
+              </span>
+            </label>
+          </div>
+          <p className="mt-2 text-xs font-normal text-[#71809f]">
+            {pricingMode === "free" ? "Price: Free ($0)" : `Price: ₹${(draft.price || 0).toLocaleString("en-IN")}`}
+          </p>
+        </div>
 
         <label className="block text-sm font-semibold">
           Download file URL
@@ -220,14 +282,22 @@ export default function ProductForm({
       </label>
 
       <div className="mt-5">
+        <ImageField
+          label="Main image (thumbnail)"
+          value={draft.thumbnailUrl}
+          onChange={url => set("thumbnailUrl", url)}
+          hint="Shown on storefront cards, the product page, and checkout."
+        />
+      </div>
+
+      <div className="mt-5">
         <p className="text-sm font-semibold">Preview images</p>
         <div className="mt-2">
-          <ProductImageDropzone
+          <ProductImageGallery
             value={draft.previewImages}
-            onChange={urls => onChange({ ...draft, previewImages: urls, thumbnailUrl: urls[0] ?? "" })}
+            onChange={urls => set("previewImages", urls)}
           />
         </div>
-        <p className="mt-2 text-xs text-[#71809f]">The first image is used as the storefront thumbnail.</p>
       </div>
 
       <div className="mt-6 flex justify-end gap-3">

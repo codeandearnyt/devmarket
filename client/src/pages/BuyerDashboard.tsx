@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { useRealtime } from "@/hooks/useRealtime";
-import { money, typeLabel } from "./Home";
+import { priceLabel, typeLabel } from "./Home";
 import HeaderAvatar from "@/components/HeaderAvatar";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
@@ -65,7 +65,7 @@ export default function BuyerDashboard() {
                     <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[.1em] ${statusStyles[order.status]}`}>{statusLabel[order.status]}</span>
                   </div>
                   <h2 className="mt-2 font-display text-xl font-semibold tracking-[-.03em]">{product.title}</h2>
-                  <p className="mt-1 text-sm text-[#53617d]">{typeLabel(product.type)} · {money(order.amount)} · {new Date(order.createdAt).toLocaleDateString()}</p>
+                  <p className="mt-1 text-sm text-[#53617d]">{typeLabel(product.type)} · {priceLabel(order.amount)} · {new Date(order.createdAt).toLocaleDateString()}</p>
                 </div>
                 <div className="md:text-right">
                   {order.status === "DELIVERED" || order.status === "PAID" ? (

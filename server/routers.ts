@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import Razorpay from "razorpay";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -40,6 +40,7 @@ import {
   listProducts,
   listPublishedBlogPosts,
   listPublishedBlogPostsPage,
+  listRelatedBlogPosts,
   listProductReviews,
   listSubscribers,
   recordAnalyticsEvent,
@@ -323,6 +324,7 @@ export const appRouter = router({
   blog: router({
     list: publicProcedure.input(z.object({ page: z.number().int().positive().optional(), pageSize: z.number().int().positive().max(24).optional() }).optional()).query(({ input }) => listPublishedBlogPostsPage(input?.page ?? 1, input?.pageSize ?? 6)),
     bySlug: publicProcedure.input(z.object({ slug: z.string() })).query(({ input }) => getPublishedBlogPostBySlug(input.slug)),
+    related: publicProcedure.input(z.object({ slug: z.string(), limit: z.number().int().positive().max(6).optional() })).query(({ input }) => listRelatedBlogPosts(input.slug, input.limit ?? 4)),
   }),
   orders: router({
     myOrders: protectedProcedure.query(({ ctx }) => listOrdersForUser(ctx.user.id)),
@@ -355,6 +357,23 @@ export const appRouter = router({
       const order = await createOrder({ orderNumber: localOrderId, userId: ctx.user.id, productId: product.id, amount, currency: "INR", paymentMethod: "RAZORPAY", status: "PENDING", razorpayOrderId: gatewayOrder.id });
       publishRealtime({ type: "order.updated", scope: "buyer", userId: ctx.user.id, data: { orderId: order?.id, status: "PENDING", paymentMethod: "RAZORPAY" } });
       return { order, checkout: { keyId: process.env.RAZORPAY_KEY_ID, amount: amount * 100, currency: "INR", name: "DevMarket", description: product.title } };
+    }),
+    createFree: protectedProcedure.input(z.object({ productId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database is not configured");
+      const product = (await db.select().from(products).where(eq(products.id, input.productId)).limit(1))[0];
+      if (!product) throw new Error("Product not found");
+      const amount = product.discountPrice ?? product.price;
+      if (amount !== 0) throw new Error("This product is not free");
+      // A free claim unlocks immediately, but never duplicates an order the
+      // buyer already owns (they may have paid before the price dropped).
+      const owned = (await db.select({ id: orders.id }).from(orders).where(and(eq(orders.userId, ctx.user.id), eq(orders.productId, product.id), or(eq(orders.status, "PAID"), eq(orders.status, "DELIVERED")))).limit(1))[0];
+      if (owned) return { order: owned, alreadyOwned: true };
+      const order = await createOrder({ orderNumber: orderNumber(), userId: ctx.user.id, productId: product.id, amount: 0, currency: "INR", paymentMethod: "FREE", status: "DELIVERED", deliveredAt: new Date() });
+      await db.update(products).set({ salesCount: (product.salesCount ?? 0) + 1 }).where(eq(products.id, product.id));
+      publishRealtime({ type: "payment.updated", scope: "buyer", userId: ctx.user.id, data: { orderId: order?.id, status: "DELIVERED" } });
+      publishRealtime({ type: "catalog.updated", scope: "public", data: { productId: product.id } });
+      return { order, alreadyOwned: false };
     }),
     verifyRazorpay: protectedProcedure.input(z.object({ orderId: z.number().int().positive(), razorpayOrderId: z.string(), razorpayPaymentId: z.string(), razorpaySignature: z.string() })).mutation(async ({ ctx, input }) => {
       const owned = await getOrderForUser(input.orderId, ctx.user.id);

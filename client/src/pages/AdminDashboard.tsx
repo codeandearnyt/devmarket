@@ -5,14 +5,13 @@ import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { useRealtime } from "@/hooks/useRealtime";
-import { money, typeLabel } from "./Home";
+import { money, priceLabel, typeLabel } from "./Home";
 import HeaderAvatar from "@/components/HeaderAvatar";
 import SiteHeader from "@/components/SiteHeader";
 import DevMarketIcon from "@/assets/dev-market-icon.png";
 import BlogAdminPanel from "@/components/BlogAdminPanel";
 import AdminInsightsPanel from "@/components/AdminInsightsPanel";
 import ReviewModerationPanel from "@/components/ReviewModerationPanel";
-import ProductImageDropzone from "@/components/ProductImageDropzone";
 import ProductForm, { emptyProductDraft, type ProductDraft } from "@/components/ProductForm";
 import CategoryManager from "@/components/CategoryManager";
 import ProductTypeManager from "@/components/ProductTypeManager";
@@ -310,7 +309,7 @@ export default function AdminDashboard() {
                   </div>
                   <p className="mt-3 text-sm leading-6 text-[#53617d]">{product.shortDescription}</p>
                   <div className="mt-4 flex items-center justify-between border-t border-[#e9f7f6] pt-4">
-                    <span className="font-display text-lg font-semibold">{money(product.price)}</span>
+                    <span className="font-display text-lg font-semibold">{priceLabel(product.price)}</span>
                     <button onClick={() => { setEditingProductId(product.id); setProductDraft({ title: product.title, slug: product.slug, shortDescription: product.shortDescription, description: product.description, type: product.type, categoryId: product.categoryId, price: product.price, thumbnailUrl: product.thumbnailUrl, fileUrl: product.fileUrl, previewImages: (product.previewImages as string[] | null) ?? [] }); setShowProductForm(true); }} className="text-sm font-semibold text-[#13b8b0]">Edit</button>
                   </div>
                 </div>

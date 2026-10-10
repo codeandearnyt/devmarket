@@ -1,24 +1,94 @@
-import { ArrowLeft, BookOpen, CalendarDays, Tag } from "lucide-react";
-import { useEffect } from "react";
+import { BookOpen } from "lucide-react";
+import { useEffect, useMemo, useRef } from "react";
 import { Link, useRoute } from "wouter";
-import { Streamdown } from "streamdown";
 import { trpc } from "@/lib/trpc";
 import { useAnalyticsEvent } from "@/hooks/useAnalyticsEvent";
 import ScrollDepthBackground from "@/components/ScrollDepthBackground";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
-import { BlogBlocks, hasBlocks } from "@/components/BlogBlocks";
+import BlogPostContent from "@/components/blog/BlogPostContent";
+import BlogPostFooter from "@/components/blog/BlogPostFooter";
+import BlogPostHeader from "@/components/blog/BlogPostHeader";
+import BlogPostLayout from "@/components/blog/BlogPostLayout";
+import { articleSections, articleWordCount, readingMinutes } from "@/lib/blogContent";
+import { applyPageMeta } from "@/lib/seo";
 
+/**
+ * Article page, built from the shared blog post template.
+ *
+ * The route, the title format and the analytics event are unchanged; what is
+ * new is the template: a two-column spread with a sticky sidebar, an automatic
+ * table of contents, related reading, and sponsored placements that only ever
+ * land on section boundaries.
+ */
 export default function BlogArticle() {
   const [, params] = useRoute("/blog/:slug");
-  const post = trpc.blog.bySlug.useQuery({ slug: params?.slug ?? "" }, { enabled: Boolean(params?.slug) });
+  const slug = params?.slug ?? "";
+  const post = trpc.blog.bySlug.useQuery({ slug }, { enabled: Boolean(slug) });
   const track = useAnalyticsEvent();
-  useEffect(() => { if (post.data) { document.title = `${post.data.title} | DevMarket Blog`; track("article_view", { slug: post.data.slug, category: post.data.category }); } }, [post.data, track]);
-  if (post.isLoading) return <div className="liquid-page min-h-screen bg-[#eef8fa] p-10 font-mono text-xs uppercase tracking-[.16em] text-[#13b8b0]">Loading article…</div>;
-  if (!post.data) return <div className="liquid-page min-h-screen bg-[#eef8fa] px-5 py-32 text-center text-[#172039]"><BookOpen className="mx-auto text-[#13b8b0]" size={32} /><h1 className="mt-5 font-display text-4xl font-semibold">Article not found.</h1><Link href="/blog" className="mt-7 inline-flex rounded-full bg-[#172039] px-5 py-3 text-sm font-semibold text-white">Back to blog</Link></div>;
+  const contentRef = useRef<HTMLElement | null>(null);
+  // One rotation per page view: stable while reading, different next visit.
+  const adSeed = useRef(Math.floor(Math.random() * 0xffffffff)).current;
+
   const article = post.data;
-  return <div className="liquid-page min-h-screen overflow-hidden bg-[#eef8fa] text-[#172039]"><ScrollDepthBackground />
-    <SiteHeader linkLabel="All articles" linkHref="/blog" />
-    <main className="relative z-10 mx-auto max-w-[940px] px-5 pb-24 pt-32 lg:px-8 lg:pt-40"><div className="text-center"><span className="rounded-full bg-[#c7f76d] px-3 py-1.5 font-mono text-[10px] uppercase tracking-[.16em]">{article.category}</span><h1 className="mx-auto mt-7 max-w-4xl font-display text-5xl font-semibold leading-[.9] tracking-[-.08em] md:text-7xl">{article.title}</h1><div className="mt-7 flex flex-wrap items-center justify-center gap-3 text-xs uppercase tracking-[.12em] text-[#71809f]"><CalendarDays size={14} className="text-[#13b8b0]" />{new Date(article.publishedAt ?? article.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}<span>·</span><span>By {article.authorName}</span></div></div>{article.coverImageUrl ? <img src={article.coverImageUrl} alt="" className="mt-14 aspect-[2/1] w-full rounded-[2rem] object-cover" /> : <div className="relative mt-14 h-44 overflow-hidden rounded-[2rem] bg-gradient-to-r from-[#c9f4f1] via-[#eef8fa] to-[#ded9ff]"><div className="absolute -left-10 -top-24 h-64 w-64 rounded-full bg-[#13b8b0]/25" /><div className="absolute -bottom-32 -right-8 h-80 w-80 rounded-full bg-[#7658f5]/20" /></div>}<p className="mx-auto mt-12 max-w-2xl text-center text-xl leading-8 text-[#53617d]">{article.excerpt}</p><article className="prose prose-lg mx-auto mt-12 max-w-3xl text-[#53617d] prose-headings:font-display prose-headings:text-[#172039] prose-headings:tracking-[-.04em] prose-a:text-[#13b8b0]">{hasBlocks(article.blocks) ? <BlogBlocks blocks={article.blocks} /> : <Streamdown>{article.content}</Streamdown>}</article><div className="mx-auto mt-14 flex max-w-3xl flex-wrap gap-2 border-t border-[#d7e8eb] pt-6">{((article.tags as string[] | null) ?? []).map(tag => <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-[#e9f7f6] px-3 py-1.5 text-xs font-semibold text-[#53617d]"><Tag size={12} />{tag}</span>)}</div></main><SiteFooter />
-  </div>;
+  const sections = useMemo(() => (article ? articleSections(article) : []), [article]);
+  const words = useMemo(() => articleWordCount(sections), [sections]);
+  const minutes = useMemo(() => readingMinutes(sections), [sections]);
+
+  useEffect(() => {
+    if (!article) return;
+    const cleanup = applyPageMeta({
+      title: `${article.title} | DevMarket Blog`,
+      description: article.excerpt ?? null,
+      image: article.coverImageUrl ?? null,
+      path: `/blog/${article.slug}`,
+    });
+    track("article_view", { slug: article.slug, category: article.category });
+    return cleanup;
+  }, [article, track]);
+
+  if (post.isLoading) {
+    return (
+      <div className="liquid-page min-h-screen bg-[#eef8fa] p-10 font-mono text-xs uppercase tracking-[.16em] text-[#13b8b0]">
+        Loading article…
+      </div>
+    );
+  }
+
+  if (!article) {
+    return (
+      <div className="liquid-page min-h-screen bg-[#eef8fa] px-5 py-32 text-center text-[#172039]">
+        <BookOpen className="mx-auto text-[#13b8b0]" size={32} />
+        <h1 className="mt-5 font-display text-4xl font-semibold">Article not found.</h1>
+        <Link href="/blog" className="mt-7 inline-flex rounded-full bg-[#172039] px-5 py-3 text-sm font-semibold text-white">
+          Back to blog
+        </Link>
+      </div>
+    );
+  }
+
+  const tags = ((article.tags as string[] | null) ?? []).map(String);
+
+  return (
+    /* Unclipped shell: the depth scene clips itself, and an `overflow` ancestor
+       would silently break the sticky sidebar. */
+    <div className="liquid-page-unclipped min-h-screen bg-[#eef8fa] text-[#172039]">
+      <ScrollDepthBackground />
+      <SiteHeader linkLabel="All articles" linkHref="/blog" />
+      <main className="relative z-10 pt-28 lg:pt-36">
+        <BlogPostLayout
+          slug={article.slug}
+          version={`${article.id}-${article.updatedAt ?? article.createdAt}`}
+          seed={adSeed}
+          contentRef={contentRef}
+          header={<BlogPostHeader article={article} readingMinutes={minutes} />}
+          content={ads => (
+            <BlogPostContent sections={sections} words={words} ads={ads} contentRef={contentRef} />
+          )}
+          footer={<BlogPostFooter tags={tags} category={article.category} />}
+        />
+      </main>
+      <SiteFooter />
+    </div>
+  );
 }

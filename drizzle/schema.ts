@@ -11,7 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 const roleEnum = pgEnum("role", ["user", "admin"]);
-const paymentMethodEnum = pgEnum("paymentMethod", ["RAZORPAY", "MANUAL_QR"]);
+const paymentMethodEnum = pgEnum("paymentMethod", ["RAZORPAY", "MANUAL_QR", "FREE"]);
 const orderStatusEnum = pgEnum("orderStatus", ["PENDING", "PAID", "FAILED", "REJECTED", "DELIVERED"]);
 const blogStatusEnum = pgEnum("status", ["DRAFT", "PUBLISHED"]);
 

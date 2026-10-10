@@ -513,6 +513,64 @@ export async function getPublishedBlogPostBySlug(slug: string) {
   return result[0];
 }
 
+/**
+ * Sidebar candidates for an article: same category first, then shared tags,
+ * then recency. Only metadata and a reading time travel to the client — the
+ * article bodies stay in the database, so opening a post never ships the whole
+ * blog. Reading time is counted in SQL from the markdown mirror, which the
+ * block editor keeps in sync.
+ */
+export async function listRelatedBlogPosts(slug: string, limit = 4) {
+  const db = await getDb();
+  if (!db) return [];
+  const safeLimit = Math.min(6, Math.max(2, limit));
+
+  const current = (await db
+    .select({ category: blogPosts.category, tags: blogPosts.tags })
+    .from(blogPosts)
+    .where(and(eq(blogPosts.slug, slug), eq(blogPosts.status, "PUBLISHED")))
+    .limit(1))[0];
+
+  const rows = await db
+    .select({
+      slug: blogPosts.slug,
+      title: blogPosts.title,
+      excerpt: blogPosts.excerpt,
+      category: blogPosts.category,
+      authorName: blogPosts.authorName,
+      publishedAt: blogPosts.publishedAt,
+      tags: blogPosts.tags,
+      words: sql<number>`coalesce(array_length(regexp_split_to_array(coalesce(${blogPosts.content}, ''), '[[:space:]]+'), 1), 0)`,
+    })
+    .from(blogPosts)
+    .where(eq(blogPosts.status, "PUBLISHED"))
+    .orderBy(desc(blogPosts.publishedAt), desc(blogPosts.createdAt))
+    .limit(18);
+
+  const currentTags = ((current?.tags as string[] | null) ?? []).map(tag => String(tag).toLowerCase());
+  const publishedAt = (value: Date | string | null) => (value ? new Date(value).getTime() : 0);
+
+  return rows
+    .filter(row => row.slug !== slug)
+    .map(row => {
+      const rowTags = ((row.tags as string[] | null) ?? []).map(tag => String(tag).toLowerCase());
+      const overlap = rowTags.filter(tag => currentTags.includes(tag)).length;
+      const score = (row.category && row.category === current?.category ? 3 : 0) + overlap;
+      return { row, score };
+    })
+    .sort((a, b) => b.score - a.score || publishedAt(b.row.publishedAt) - publishedAt(a.row.publishedAt))
+    .slice(0, safeLimit)
+    .map(({ row }) => ({
+      slug: row.slug,
+      title: row.title,
+      excerpt: row.excerpt,
+      category: row.category,
+      authorName: row.authorName,
+      publishedAt: row.publishedAt,
+      readingMinutes: Math.max(1, Math.round(Number(row.words ?? 0) / 200)),
+    }));
+}
+
 export async function listAdminBlogPosts() {
   const db = await getDb();
   if (!db) return [];

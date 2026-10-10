@@ -14,6 +14,8 @@ import DevMarketIcon from "@/assets/dev-market-icon.png";
 export type ProductCardData = { id: number; title: string; slug: string; type: string; shortDescription: string; description: string; price: number; discountPrice: number | null; thumbnailUrl: string; techStack?: string[]; salesCount: number; categoryId?: number; fileUrl?: string; isFeatured?: boolean };
 
 export function money(value: number) { return `₹${value.toLocaleString("en-IN")}`; }
+/** Product prices are either Free ($0) or a custom amount — never show "₹0". */
+export function priceLabel(value: number) { return value === 0 ? "Free" : money(value); }
 /** Types are admin-managed rows now, so unknown slugs fall back to a
  *  prettified version of the slug itself instead of a wrong label. */
 export function typeLabel(type: string) {
@@ -36,7 +38,7 @@ export function ProductCard({ product, index = 0 }: { product: ProductCardData; 
         <div className="p-5">
           <div className="mb-2 flex items-center justify-between gap-3"><h3 className="font-display text-lg font-semibold tracking-[-.03em]">{product.title}</h3><span className="font-mono text-[10px] text-[#85857f]">{product.salesCount ?? 0} sold</span></div>
           <p className="min-h-[42px] text-sm leading-6 text-[#53617d]">{product.shortDescription}</p>
-          <div className="mt-5 flex items-end justify-between border-t border-[#e9f7f6] pt-4"><div><span className="font-display text-xl font-semibold">{money(current)}</span>{product.discountPrice ? <span className="ml-2 text-sm text-[#a0a09a] line-through">{money(product.price)}</span> : null}</div><span className="text-xs font-semibold text-[#53617d]">Instant access</span></div>
+          <div className="mt-5 flex items-end justify-between border-t border-[#e9f7f6] pt-4"><div><span className="font-display text-xl font-semibold">{priceLabel(current)}</span>{product.discountPrice ? <span className="ml-2 text-sm text-[#a0a09a] line-through">{money(product.price)}</span> : null}</div><span className="text-xs font-semibold text-[#53617d]">{current === 0 ? "Free download" : "Instant access"}</span></div>
         </div>
       </article>
     </Link>

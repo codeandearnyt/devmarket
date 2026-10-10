@@ -3,8 +3,12 @@ import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
 function context(role: "user" | "admin" = "user"): TrpcContext {
+  const user = { id: 7, openId: "test-user", email: "buyer@example.com", name: "Test Buyer", loginMethod: "test", role, isDisabled: false, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() };
   return {
-    user: { id: 7, openId: "test-user", email: "buyer@example.com", name: "Test Buyer", loginMethod: "test", role, isDisabled: false, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() },
+    user,
+    // The console runs on its own session, so an admin call is authorised by
+    // `adminUser` rather than by the buyer's role on the storefront session.
+    adminUser: role === "admin" ? user : null,
     req: { protocol: "https", headers: {} } as TrpcContext["req"],
     res: { clearCookie: () => undefined } as TrpcContext["res"],
   };
