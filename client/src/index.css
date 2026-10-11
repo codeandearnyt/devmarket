@@ -46,7 +46,12 @@ input, select, textarea { background: rgba(255,255,255,.72) !important; border-c
 .site-header { position: fixed; inset: 0 0 auto; z-index: 50; padding: 18px 20px 0; transition: transform .24s cubic-bezier(.23,1,.32,1), opacity .2s ease; }
 .site-header-hidden { transform: translate3d(0,-120%,0); opacity: 0; }
 .site-nav-pill { min-height: 60px; border: 1px solid rgba(255,255,255,.9); border-radius: 999px; background: rgba(255,255,255,.84); box-shadow: 0 12px 34px rgba(39,104,122,.14), inset 0 1px 0 rgba(255,255,255,.98); }
-.site-mobile-menu { max-width: 1080px; margin: 10px auto 0; padding: 18px 22px; border: 1px solid rgba(255,255,255,.92); border-radius: 24px; background: rgba(255,255,255,.94); box-shadow: 0 14px 34px rgba(39,104,122,.14); }
+/* The drawer is part of the fixed header, so it scrolls away with it and can
+   never be taller than the space it covers. `max-height` + scroll keeps every
+   item reachable on a short landscape phone. */
+.site-mobile-menu { max-width: 1080px; max-height: calc(100dvh - 120px); overflow-y: auto; overscroll-behavior: contain; margin: 10px auto 0; padding: 14px 16px; border: 1px solid rgba(255,255,255,.92); border-radius: 24px; background: rgba(255,255,255,.96); box-shadow: 0 14px 34px rgba(39,104,122,.14); backdrop-filter: blur(8px); }
+/* Clear the fixed header. Desktop and mobile use the same bar height, so one
+   value is enough; `main` is the only element that needs the offset. */
 .site-header + main { padding-top: 96px; }
 .site-header + main > section:first-child { padding-top: 40px; }
 .liquid-page > header, .liquid-page > main, .liquid-page > footer { position: relative; z-index: 1; }
@@ -97,6 +102,11 @@ input, select, textarea { background: rgba(255,255,255,.72) !important; border-c
 .sweep-button:active { transform: scale(.97); }
 .footer-link { transition: color .18s ease, transform .18s ease; }
 .footer-link:hover { color: #13b8b0; transform: translateX(3px); }
+/* Horizontally scrolling rails (the admin console nav, the technology strip).
+   The rail still scrolls, it just stops painting a system scrollbar across the
+   layout on touch devices. */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; height: 0; width: 0; }
 .auth-switch { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden; border-radius: 999px; background: #e9f7f6; padding: 4px; }
 .auth-switch-indicator { position: absolute; inset: 4px auto 4px 4px; width: calc(50% - 4px); border-radius: 999px; background: #172039; transition: transform .3s cubic-bezier(.23,1,.32,1); }
 .auth-switch-indicator.is-register { transform: translateX(100%); }

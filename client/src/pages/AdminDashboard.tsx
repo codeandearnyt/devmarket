@@ -200,7 +200,7 @@ export default function AdminDashboard() {
             </Link>
             <span className="hidden font-mono text-[10px] text-white/45 lg:mt-2 lg:block">COMMAND CENTER / 01</span>
           </div>
-          <nav className="flex gap-2 overflow-x-auto px-4 pb-4 lg:mt-8 lg:block lg:flex-1 lg:overflow-y-auto lg:px-4 lg:pb-0">
+          <nav className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-4 lg:mt-8 lg:block lg:flex-1 lg:overflow-y-auto lg:overflow-x-hidden lg:px-4 lg:pb-0">
             {nav.map(item => (
               <button key={item.id} onClick={() => setTab(item.id)} className={`flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition lg:mb-2 lg:w-full ${tab === item.id ? "bg-[#c7f76d] text-[#172039]" : "text-white/65 hover:bg-white/10 hover:text-white"}`}>
                 {item.icon}<span>{item.label}</span>

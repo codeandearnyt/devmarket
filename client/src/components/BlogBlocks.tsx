@@ -45,14 +45,14 @@ export function BlogBlocks({ blocks }: { blocks: BlogBlock[] }) {
         const embed = safeEmbedUrl(block.src);
         if (!embed) return null;
         return (
-          <div key={index} className="not-prose my-6">
+          <div key={index} className="not-prose my-6 overflow-hidden rounded-2xl border border-[#d7e8eb] bg-[#eef8fa]">
             <iframe
               src={embed}
               title="Embedded content"
               loading="lazy"
               allowFullScreen
               sandbox="allow-scripts allow-same-origin allow-presentation"
-              className="aspect-video w-full rounded-2xl border-0"
+              className="aspect-video w-full border-0"
             />
           </div>
         );

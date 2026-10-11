@@ -4,6 +4,7 @@ import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import CodeOrbit from "@/components/CodeOrbit";
+import SiteFooter from "@/components/SiteFooter";
 import DevMarketIcon from "@/assets/dev-market-icon.png";
 import HandThrowing from "@/assets/Hand-Throwing.png";
 import MoneyWeight from "@/assets/Money-Weight.png";
@@ -181,6 +182,11 @@ export default function Login() {
           </div>
         </section>
       </main>
+      {/* The panel is a full-height split on large screens, so the footer only
+          appears once the two columns have stacked and there is room for it. */}
+      <div className="lg:hidden">
+        <SiteFooter />
+      </div>
     </div>
   );
 }
