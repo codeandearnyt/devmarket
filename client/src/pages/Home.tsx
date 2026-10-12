@@ -9,20 +9,7 @@ import ScrollDepthBackground from "@/components/ScrollDepthBackground";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import TechnologiesSection from "@/components/TechnologiesSection";
-
-export type ProductCardData = { id: number; title: string; slug: string; type: string; shortDescription: string; description: string; price: number; discountPrice: number | null; thumbnailUrl: string; techStack?: string[]; salesCount: number; categoryId?: number; fileUrl?: string; isFeatured?: boolean };
-
-export function money(value: number) { return `₹${value.toLocaleString("en-IN")}`; }
-/** Product prices are either Free ($0) or a custom amount — never show "₹0". */
-export function priceLabel(value: number) { return value === 0 ? "Free" : money(value); }
-/** Types are admin-managed rows now, so unknown slugs fall back to a
- *  prettified version of the slug itself instead of a wrong label. */
-export function typeLabel(type: string) {
-  if (type === "SOURCE_CODE") return "Source code";
-  if (type === "PROMPT") return "AI prompt";
-  if (type === "PROJECT") return "Full project";
-  return type.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
-}
+import { money, priceLabel, typeLabel, type ProductCardData } from "@/lib/format";
 
 export function ProductCard({ product, index = 0 }: { product: ProductCardData; index?: number }) {
   const current = product.discountPrice ?? product.price;

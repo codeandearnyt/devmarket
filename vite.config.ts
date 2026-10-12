@@ -167,6 +167,34 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        /**
+         * Split the heavy, rarely-changing dependencies into their own chunks.
+         *
+         * Without this Rollup folds every eagerly-reachable dependency into a
+         * single ~1 MB entry file. That is slow on a cold cache and, worse, it
+         * invalidates on every deploy even when none of those libraries changed
+         * — so returning visitors re-download the same third-party code each
+         * time. Separate chunks let the browser fetch them in parallel over
+         * HTTP/2 and keep them cached across deploys.
+         */
+        manualChunks(id: string) {
+          if (!id.includes("node_modules")) return undefined;
+          if (id.includes("firebase")) return "vendor-firebase";
+          if (id.includes("framer-motion") || id.includes("motion-dom") || id.includes("motion-utils")) return "vendor-motion";
+          if (id.includes("@tanstack") || id.includes("@trpc") || id.includes("superjson")) return "vendor-data";
+          if (id.includes("@radix-ui") || id.includes("sonner")) return "vendor-ui";
+          if (id.includes("lucide-react")) return "vendor-icons";
+          if (id.includes("react-dom") || id.includes("scheduler")) return "vendor-react";
+          // Everything else is left to Rollup's default behaviour on purpose.
+          // A catch-all bucket here would merge the huge on-demand libraries
+          // (syntax grammars, mermaid, cytoscape) into one multi-megabyte chunk,
+          // so a page that needs one of them would download all of them.
+          return undefined;
+        },
+      },
+    },
   },
   server: {
     host: true,

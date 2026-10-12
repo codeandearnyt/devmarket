@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { useRealtime } from "@/hooks/useRealtime";
-import { priceLabel, typeLabel } from "./Home";
+import { priceLabel, typeLabel } from "@/lib/format";
 import HeaderAvatar from "@/components/HeaderAvatar";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";

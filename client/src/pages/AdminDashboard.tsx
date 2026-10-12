@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { useRealtime } from "@/hooks/useRealtime";
-import { money, priceLabel, typeLabel } from "./Home";
+import { money, priceLabel, typeLabel } from "@/lib/format";
 import HeaderAvatar from "@/components/HeaderAvatar";
 import SiteHeader from "@/components/SiteHeader";
 import DevMarketIcon from "@/assets/dev-market-icon.png";

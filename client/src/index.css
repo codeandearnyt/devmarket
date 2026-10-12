@@ -272,6 +272,76 @@ input, select, textarea { background: rgba(255,255,255,.72) !important; border-c
 }
 
 /* =====================================================================
+   Splash
+   ---------------------------------------------------------------------
+   Covers the app only until the router paints, then fades. Driven entirely
+   by CSS so no animation library sits in the critical path — this renders
+   before anything else does, and framer-motion was being downloaded just to
+   fade one div.
+   ===================================================================== */
+.splash-root {
+  transition: opacity 280ms cubic-bezier(.4, 0, 1, 1);
+}
+.splash-root-out { opacity: 0; }
+
+.splash-content {
+  animation: splashContentIn 320ms cubic-bezier(.23, 1, .32, 1) both;
+  transition: opacity 280ms cubic-bezier(.4, 0, 1, 1), transform 280ms cubic-bezier(.4, 0, 1, 1);
+}
+.splash-root-out .splash-content { opacity: 0; transform: translateY(-18px) scale(.97); }
+
+.splash-logo { animation: splashLogoIn 420ms cubic-bezier(.23, 1, .32, 1) both; }
+
+.splash-item { animation: splashItemIn 280ms cubic-bezier(.23, 1, .32, 1) both; }
+.splash-item:nth-of-type(1) { animation-delay: 40ms; }
+.splash-item:nth-of-type(2) { animation-delay: 90ms; }
+.splash-item:nth-of-type(3) { animation-delay: 140ms; }
+
+@keyframes splashContentIn {
+  from { opacity: 0; transform: translateY(14px) scale(.94); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes splashLogoIn {
+  from { opacity: 0; transform: scale(.6) rotate(-8deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0); }
+}
+@keyframes splashItemIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* A splash that cannot finish animating must never trap the user behind it. */
+@media (prefers-reduced-motion: reduce) {
+  .splash-root,
+  .splash-content,
+  .splash-logo,
+  .splash-item {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* =====================================================================
+   Route transition
+   ---------------------------------------------------------------------
+   A short fade-in as a view mounts. Kept well under the ~100ms point where a
+   transition starts to read as latency rather than polish, and disabled
+   outright for anyone who has asked for reduced motion.
+   ===================================================================== */
+.route-fade-in { animation: routeFadeIn 180ms cubic-bezier(.23, 1, .32, 1) both; }
+@keyframes routeFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-fade-in { animation-duration: 1ms !important; }
+}
+
+/* Applied to the outgoing view just before a hand-off navigation. Kept short
+   enough that it reads as a cross-fade rather than as a wait. */
+.route-fade-out { opacity: 0; transition: opacity 160ms cubic-bezier(.4, 0, 1, 1); }
+
+/* =====================================================================
    Neumorphism — admin console
    ---------------------------------------------------------------------
    Same two-shadow moulding idea as the profile page, re-tuned for the

@@ -117,7 +117,10 @@ export default function ProductImageGallery({
           <ImagePlus size={12} /> Paste a URL or browse a local image — local files are stored as base64.
         </p>
       )}
-      <p className="mt-2 text-xs text-[#71809f]">Extra shots for the product page (up to {MAX_IMAGES}, each under 1.5 MB). The storefront thumbnail is set in the main image field.</p>
+      <p className="mt-2 text-xs text-[#71809f]">
+        Showcase images appear in the gallery on the product page buyers see. Up to {MAX_IMAGES} images, each
+        under 1.5 MB. The card thumbnail used in listings is set separately in the main image field above.
+      </p>
     </div>
   );
 }

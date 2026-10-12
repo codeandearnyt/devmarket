@@ -1,31 +1,32 @@
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import LoadingAnimation from "./LoadingAnimation";
 import DevMarketIcon from "@/assets/dev-market-icon.png";
+import LoadingAnimation from "./LoadingAnimation";
 
-const SPLASH_MS = 5000;
-const EXIT_MS = 450;
-
-export default function SplashScreen({ onComplete }: { onComplete: () => void }) {
-  const [phase, setPhase] = useState<"in" | "out">("in");
-
-  useEffect(() => {
-    const hold = setTimeout(() => setPhase("out"), SPLASH_MS);
-    const done = setTimeout(onComplete, SPLASH_MS + EXIT_MS);
-    return () => {
-      clearTimeout(hold);
-      clearTimeout(done);
-    };
-  }, [onComplete]);
-
+/**
+ * Brand splash shown while the app's first chunk parses.
+ *
+ * This used to hold the screen for a fixed five seconds, so a first-time visitor
+ * watched a logo while the app it was covering was already mounted and
+ * interactive. It is now purely reactive: the parent unmounts it as soon as the
+ * router has painted.
+ *
+ * Two constraints shaped this component:
+ *
+ * 1. No timer of its own. Any delay here lands directly on time-to-first-paint.
+ * 2. No framer-motion. This renders before the app does, so pulling a 110 kB
+ *    animation library into the critical path to fade one div was a bad trade.
+ *    Plain CSS transitions do the same job for free.
+ *
+ * `pointer-events-none` matters: the splash is a cover over a live, interactive
+ * app. It must never swallow a click meant for the page underneath.
+ */
+export default function SplashScreen({ exiting = false }: { exiting?: boolean }) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: phase === "out" ? 0 : 1 }}
-      transition={{ duration: EXIT_MS / 1000, ease: "easeInOut" }}
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden bg-[#172039]"
+    <div
       aria-label="Loading DevMarket"
       role="status"
+      className={`splash-root pointer-events-none fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden bg-[#172039] ${
+        exiting ? "splash-root-out" : ""
+      }`}
     >
       {/* ambient light */}
       <div
@@ -47,69 +48,26 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
         }}
       />
 
-      <motion.div
-        initial={{ opacity: 0, y: 14, scale: 0.94 }}
-        animate={
-          phase === "out"
-            ? { opacity: 0, y: -18, scale: 0.97 }
-            : { opacity: 1, y: 0, scale: 1 }
-        }
-        transition={
-          phase === "out"
-            ? { duration: EXIT_MS / 1000, ease: "easeIn" }
-            : { type: "spring", stiffness: 180, damping: 18 }
-        }
-        className="relative z-10 flex flex-col items-center px-6"
-      >
-        {/* logo */}
-        <motion.img
+      <div className="splash-content relative z-10 flex flex-col items-center px-6">
+        <img
           src={DevMarketIcon}
           alt="DevMarket"
-          className="h-24 w-24 select-none object-contain drop-shadow-[0_10px_28px_rgba(199,247,109,0.28)] sm:h-28 sm:w-28"
-          initial={{ scale: 0.6, opacity: 0, rotate: -8 }}
-          animate={{ scale: 1, opacity: 1, rotate: 0 }}
-          transition={{ type: "spring", stiffness: 220, damping: 16, delay: 0.1 }}
           draggable={false}
+          className="splash-logo h-24 w-24 select-none object-contain drop-shadow-[0_10px_28px_rgba(199,247,109,0.28)] sm:h-28 sm:w-28"
         />
 
-        <motion.p
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.5 }}
-          className="mt-4 font-display text-3xl font-bold tracking-[-.05em] text-white sm:text-4xl"
-        >
+        <p className="splash-item mt-4 font-display text-3xl font-bold tracking-[-.05em] text-white sm:text-4xl">
           dev<span className="text-[#13b8b0]">market</span>
-        </motion.p>
+        </p>
 
-        {/* loading animation under the logo */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.85 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.55, duration: 0.5 }}
-          className="mt-7"
-        >
+        <div className="splash-item mt-7">
           <LoadingAnimation size={132} label="Loading DevMarket" />
-        </motion.div>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.85, duration: 0.6 }}
-          className="mt-1 font-mono text-[11px] uppercase tracking-[.28em] text-[#a3e0e6]/70"
-        >
-          Bootstrapping marketplace
-        </motion.p>
-
-        {/* progress rail */}
-        <div className="mt-6 h-[3px] w-40 overflow-hidden rounded-full bg-white/10 sm:w-52">
-          <motion.div
-            initial={{ width: "0%" }}
-            animate={{ width: "100%" }}
-            transition={{ duration: SPLASH_MS / 1000, ease: "linear" }}
-            className="h-full rounded-full bg-gradient-to-r from-[#13b8b0] via-[#c7f76d] to-[#13b8b0]"
-          />
         </div>
-      </motion.div>
-    </motion.div>
+
+        <p className="splash-item mt-1 font-mono text-[11px] uppercase tracking-[.28em] text-[#a3e0e6]/70">
+          Bootstrapping marketplace
+        </p>
+      </div>
+    </div>
   );
 }

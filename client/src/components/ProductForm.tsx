@@ -291,8 +291,12 @@ export default function ProductForm({
       </div>
 
       <div className="mt-5">
-        <p className="text-sm font-semibold">Preview images</p>
-        <div className="mt-2">
+        <p className="text-sm font-semibold">Showcase images</p>
+        <p className="mt-1 text-xs leading-5 text-[#71809f]">
+          The gallery buyers scroll through on the product page. The first image is not promoted — the main
+          image above stays the listing thumbnail.
+        </p>
+        <div className="mt-3">
           <ProductImageGallery
             value={draft.previewImages}
             onChange={urls => set("previewImages", urls)}

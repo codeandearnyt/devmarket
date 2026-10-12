@@ -1,5 +1,5 @@
 import { Lottie } from "lottie-react";
-import { useReducedMotion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { loaderAnimation } from "./loaderAnimation";
 
 type LoadingAnimationProps = {
@@ -11,6 +11,28 @@ type LoadingAnimationProps = {
 };
 
 /**
+ * Read the OS "reduce motion" preference.
+ *
+ * This used to come from framer-motion, but this component sits on the very
+ * first paint of the app, and framer-motion was being downloaded — and parsed —
+ * before anything could be shown. A media query is a few lines and costs
+ * nothing, which is the right trade for a loader.
+ */
+function usePrefersReducedMotion() {
+  const [reduce, setReduce] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduce(query.matches);
+    const onChange = (event: MediaQueryListEvent) => setReduce(event.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+
+  return reduce;
+}
+
+/**
  * Brand-matched Lottie loader ("Code Orbit").
  * Used as the route-transition fallback and underneath the splash logo.
  */
@@ -19,7 +41,7 @@ export default function LoadingAnimation({
   className = "",
   label = "Loading DevMarket",
 }: LoadingAnimationProps) {
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = usePrefersReducedMotion();
 
   return (
     <div
