@@ -1,13 +1,14 @@
 import {
   boolean,
+  index,
   integer,
+  json,
+  pgEnum,
+  pgTable,
   serial,
   text,
   timestamp,
   varchar,
-  jsonb as json,
-  pgEnum,
-  pgTable,
 } from "drizzle-orm/pg-core";
 
 const roleEnum = pgEnum("role", ["user", "admin"]);
@@ -15,25 +16,21 @@ const paymentMethodEnum = pgEnum("paymentMethod", ["RAZORPAY", "MANUAL_QR", "FRE
 const orderStatusEnum = pgEnum("orderStatus", ["PENDING", "PAID", "FAILED", "REJECTED", "DELIVERED"]);
 const blogStatusEnum = pgEnum("status", ["DRAFT", "PUBLISHED"]);
 
+/** Ad placement slots */
+export const adSlotEnum = pgEnum("adSlot", ["sidebar", "in-article", "banner-top", "banner-bottom"]);
+
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  openId: varchar("openId", { length: 64 }).notNull().unique(),
-  firebaseUid: varchar("firebaseUid", { length: 128 }).unique(),
-  username: varchar("username", { length: 40 }).unique(),
-  firstName: varchar("firstName", { length: 80 }),
-  lastName: varchar("lastName", { length: 80 }),
-  name: text("name"),
-  bio: text("bio"),
-  location: varchar("location", { length: 120 }),
-  website: text("website"),
-  github: varchar("github", { length: 120 }),
-  linkedin: varchar("linkedin", { length: 160 }),
-  email: varchar("email", { length: 320 }),
-  passwordHash: text("passwordHash"),
+  openId: varchar("openId", { length: 255 }).notNull().unique(),
+  email: varchar("email", { length: 320 }).unique(),
+  name: varchar("name", { length: 160 }),
+  username: varchar("username", { length: 40 }),
   photoUrl: text("photoUrl"),
-  loginMethod: varchar("loginMethod", { length: 64 }),
   role: roleEnum("role").default("user").notNull(),
   isDisabled: boolean("isDisabled").default(false).notNull(),
+  loginMethod: varchar("loginMethod", { length: 20 }).default("email").notNull(),
+  passwordHash: text("passwordHash"),
+  firebaseUid: varchar("firebaseUid", { length: 128 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -45,45 +42,38 @@ export const categories = pgTable("categories", {
   slug: varchar("slug", { length: 140 }).notNull().unique(),
   description: text("description"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
-/**
- * Product types used to be a Postgres enum, which meant adding one required a
- * migration. Making it a table lets admins add, rename and remove types from
- * the console; `products.type` stores the slug and the storefront resolves the
- * display name from here.
- */
 export const productTypes = pgTable("productTypes", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 120 }).notNull(),
   slug: varchar("slug", { length: 140 }).notNull().unique(),
-  description: text("description"),
+  description: varchar("description", { length: 500 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   title: varchar("title", { length: 220 }).notNull(),
   slug: varchar("slug", { length: 240 }).notNull().unique(),
-  description: text("description").notNull(),
   shortDescription: varchar("shortDescription", { length: 320 }).notNull(),
+  description: text("description").notNull(),
   type: varchar("type", { length: 64 }).notNull(),
   categoryId: integer("categoryId").notNull(),
   price: integer("price").notNull(),
   discountPrice: integer("discountPrice"),
   thumbnailUrl: text("thumbnailUrl").notNull(),
   previewImages: json("previewImages"),
-  demoUrl: text("demoUrl"),
   techStack: json("techStack"),
   fileUrl: text("fileUrl").notNull(),
-  isPublished: boolean("isPublished").default(true).notNull(),
+  isPublished: boolean("isPublished").default(false).notNull(),
   isFeatured: boolean("isFeatured").default(false).notNull(),
   salesCount: integer("salesCount").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
-
-
 
 export const orders = pgTable("orders", {
   id: serial("id").primaryKey(),
@@ -114,10 +104,72 @@ export const paymentSettings = pgTable("paymentSettings", {
   payeeName: varchar("payeeName", { length: 160 }),
   isRazorpayEnabled: boolean("isRazorpayEnabled").default(true).notNull(),
   isManualQrEnabled: boolean("isManualQrEnabled").default(true).notNull(),
+  /** Razorpay credentials (stored server-side only) */
+  razorpayKeyId: varchar("razorpayKeyId", { length: 100 }),
+  razorpayKeySecret: varchar("razorpayKeySecret", { length: 100 }),
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
+/** Ad management table */
+export const ads = pgTable("ads", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  slot: adSlotEnum("slot").notNull(),
+  /** Ad type: "html" for custom HTML/AdSense, "internal" for internal promo */
+  type: varchar("type", { length: 20 }).notNull().default("html"),
+  /** HTML/JS snippet for AdSense or custom ad code */
+  snippet: text("snippet"),
+  /** Meta tags for SEO/verification */
+  metaTags: text("metaTags"),
+  /** AdSense client ID (ca-pub-xxxxx) */
+  adSenseClientId: varchar("adSenseClientId", { length: 50 }),
+  /** AdSense slot ID */
+  adSenseSlotId: varchar("adSenseSlotId", { length: 50 }),
+  /** Internal promo: title */
+  promoTitle: varchar("promoTitle", { length: 200 }),
+  /** Internal promo: description */
+  promoDescription: text("promoDescription"),
+  /** Internal promo: CTA text */
+  promoCtaText: varchar("promoCtaText", { length: 50 }),
+  /** Internal promo: CTA link */
+  promoCtaLink: varchar("promoCtaLink", { length: 500 }),
+  /** Internal promo: image URL */
+  promoImageUrl: text("promoImageUrl"),
+  /** Display order */
+  sortOrder: integer("sortOrder").default(0).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
 
+export const reviews = pgTable("reviews", {
+  id: serial("id").primaryKey(),
+  productId: integer("productId").notNull(),
+  userId: integer("userId").notNull(),
+  rating: integer("rating").notNull(),
+  review: text("review").notNull(),
+  isApproved: boolean("isApproved").default(false).notNull(),
+  adminReply: text("adminReply"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export const subscribers = pgTable("subscribers", {
+  id: serial("id").primaryKey(),
+  email: varchar("email", { length: 320 }).notNull().unique(),
+  source: varchar("source", { length: 80 }).default("storefront").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export const analyticsEvents = pgTable("analyticsEvents", {
+  id: serial("id").primaryKey(),
+  eventType: varchar("eventType", { length: 80 }).notNull(),
+  sessionId: varchar("sessionId", { length: 64 }),
+  payload: json("payload"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
 
 export const blogPosts = pgTable("blogPosts", {
   id: serial("id").primaryKey(),
@@ -138,57 +190,8 @@ export const blogPosts = pgTable("blogPosts", {
   updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
-export const reviews = pgTable("reviews", {
-  id: serial("id").primaryKey(),
-  productId: integer("productId").notNull(),
-  userId: integer("userId").notNull(),
-  rating: integer("rating").notNull(),
-  review: text("review").notNull(),
-  adminReply: text("adminReply"),
-  repliedAt: timestamp("repliedAt"),
-  isApproved: boolean("isApproved").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-});
-
-export const subscribers = pgTable("subscribers", {
-  id: serial("id").primaryKey(),
-  email: varchar("email", { length: 320 }).notNull().unique(),
-  source: varchar("source", { length: 64 }).default("journal").notNull(),
-  isActive: boolean("isActive").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
-
-export const analyticsEvents = pgTable("analyticsEvents", {
-  id: serial("id").primaryKey(),
-  eventType: varchar("eventType", { length: 64 }).notNull(),
-  userId: integer("userId"),
-  sessionId: varchar("sessionId", { length: 64 }),
-  payload: json("payload"),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
-
-// ---------------------------------------------------------------------------
-// Inferred row / insert types shared across the server.
-// ---------------------------------------------------------------------------
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
-
-export type Category = typeof categories.$inferSelect;
-export type InsertCategory = typeof categories.$inferInsert;
-
-export type Product = typeof products.$inferSelect;
-export type InsertProduct = typeof products.$inferInsert;
-
-export type Order = typeof orders.$inferSelect;
-export type InsertOrder = typeof orders.$inferInsert;
-
 export type PaymentSetting = typeof paymentSettings.$inferSelect;
-export type BlogPost = typeof blogPosts.$inferSelect;
-export type InsertBlogPost = typeof blogPosts.$inferInsert;
-
-export type Review = typeof reviews.$inferSelect;
-export type InsertReview = typeof reviews.$inferInsert;
-
-export type Subscriber = typeof subscribers.$inferSelect;
-export type AnalyticsEvent = typeof analyticsEvents.$inferInsert;
+export type Ad = typeof ads.$inferSelect;
+export type NewAd = typeof ads.$inferInsert;

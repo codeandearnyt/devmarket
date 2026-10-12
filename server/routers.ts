@@ -4,6 +4,7 @@ import Razorpay from "razorpay";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { blogPosts, categories, orders, paymentSettings, productTypes, products, users, type User } from "../drizzle/schema";
+import type { AuthenticatedUser } from "./_core/sdk";
 import { ADMIN_COOKIE_NAME, COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -43,6 +44,11 @@ import {
   listRelatedBlogPosts,
   listProductReviews,
   listSubscribers,
+  listAds,
+  createAd,
+  updateAd,
+  deleteAd,
+  listActiveAdsBySlot,
   recordAnalyticsEvent,
   subscribeEmail,
   setReviewApproval,
@@ -133,14 +139,27 @@ const uploadDataUrl = async (dataUrl: string, prefix: string) => {
   return result.url;
 };
 
-const publicUser = (user: User | null | undefined) => {
+const publicUser = (user: AuthenticatedUser | User | null | undefined) => {
   if (!user) return null;
-  const { passwordHash: _passwordHash, firebaseUid: _firebaseUid, ...safeUser } = user;
-  return safeUser;
+  const { passwordHash: _passwordHash, firebaseUid: _firebaseUid, ...safeUser } = user as Record<string, unknown>;
+  return safeUser as Omit<User, "passwordHash" | "firebaseUid">;
 };
 
-function verifyRazorpaySignature(orderId: string, paymentId: string, signature: string) {
-  const secret = process.env.RAZORPAY_KEY_SECRET;
+/**
+ * Resolve Razorpay credentials, preferring the admin-configured values.
+ *
+ * The console stores the key pair on `paymentSettings` so an operator can
+ * rotate credentials without a redeploy. Env vars stay as the fallback so a
+ * fresh install keeps working before anyone opens the settings panel.
+ */
+async function razorpayCredentials() {
+  const row = await getPaymentSettings();
+  const keyId = row?.razorpayKeyId?.trim() || process.env.RAZORPAY_KEY_ID || "";
+  const keySecret = row?.razorpayKeySecret?.trim() || process.env.RAZORPAY_KEY_SECRET || "";
+  return { keyId, keySecret };
+}
+
+function verifyRazorpaySignature(orderId: string, paymentId: string, signature: string, secret: string) {
   if (!secret) return false;
   const expected = crypto.createHmac("sha256", secret).update(`${orderId}|${paymentId}`).digest("hex");
   return expected.length === signature.length && crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
@@ -319,7 +338,22 @@ export const appRouter = router({
     products: publicProcedure.input(z.object({ categoryId: z.number().optional(), type: z.string().optional(), search: z.string().optional(), minPrice: z.number().int().nonnegative().optional(), maxPrice: z.number().int().nonnegative().optional(), sort: z.enum(["newest", "price", "popular"]).optional() }).optional()).query(({ input }) => listProducts(input)),
     productBySlug: publicProcedure.input(z.object({ slug: z.string() })).query(({ input }) => getProductBySlug(input.slug)),
     reviews: publicProcedure.input(z.object({ productId: z.number().int().positive() })).query(({ input }) => listProductReviews(input.productId)),
-    settings: publicProcedure.query(() => getPaymentSettings()),
+    // Public storefront view. Deliberately narrow: the Razorpay key secret is
+    // stored on the same row and must never leave the admin endpoint.
+    settings: publicProcedure.query(async () => {
+      const row = await getPaymentSettings();
+      if (!row) return null;
+      return {
+        id: row.id,
+        upiId: row.upiId,
+        payeeName: row.payeeName,
+        qrCodeImageUrl: row.qrCodeImageUrl,
+        isRazorpayEnabled: row.isRazorpayEnabled,
+        isManualQrEnabled: row.isManualQrEnabled,
+        razorpayKeyId: row.razorpayKeyId,
+        updatedAt: row.updatedAt,
+      };
+    }),
   }),
   blog: router({
     list: publicProcedure.input(z.object({ page: z.number().int().positive().optional(), pageSize: z.number().int().positive().max(24).optional() }).optional()).query(({ input }) => listPublishedBlogPostsPage(input?.page ?? 1, input?.pageSize ?? 6)),
@@ -351,12 +385,13 @@ export const appRouter = router({
       if (!product) throw new Error("Product not found");
       const localOrderId = orderNumber();
       const amount = product.discountPrice ?? product.price;
-      if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) throw new Error("Razorpay is not configured");
-      const razorpay = new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET });
+      const { keyId, keySecret } = await razorpayCredentials();
+      if (!keyId || !keySecret) throw new Error("Razorpay is not configured");
+      const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
       const gatewayOrder = await razorpay.orders.create({ amount: amount * 100, currency: "INR", receipt: localOrderId });
       const order = await createOrder({ orderNumber: localOrderId, userId: ctx.user.id, productId: product.id, amount, currency: "INR", paymentMethod: "RAZORPAY", status: "PENDING", razorpayOrderId: gatewayOrder.id });
       publishRealtime({ type: "order.updated", scope: "buyer", userId: ctx.user.id, data: { orderId: order?.id, status: "PENDING", paymentMethod: "RAZORPAY" } });
-      return { order, checkout: { keyId: process.env.RAZORPAY_KEY_ID, amount: amount * 100, currency: "INR", name: "DevMarket", description: product.title } };
+      return { order, checkout: { keyId, amount: amount * 100, currency: "INR", name: "DevMarket", description: product.title } };
     }),
     createFree: protectedProcedure.input(z.object({ productId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -378,7 +413,7 @@ export const appRouter = router({
     verifyRazorpay: protectedProcedure.input(z.object({ orderId: z.number().int().positive(), razorpayOrderId: z.string(), razorpayPaymentId: z.string(), razorpaySignature: z.string() })).mutation(async ({ ctx, input }) => {
       const owned = await getOrderForUser(input.orderId, ctx.user.id);
       if (!owned || owned.order.paymentMethod !== "RAZORPAY") throw new Error("Order not found");
-      const valid = verifyRazorpaySignature(input.razorpayOrderId, input.razorpayPaymentId, input.razorpaySignature);
+      const valid = verifyRazorpaySignature(input.razorpayOrderId, input.razorpayPaymentId, input.razorpaySignature, (await razorpayCredentials()).keySecret);
       if (!valid) {
         const db = await getDb();
         if (db) await db.update(orders).set({ status: "FAILED", razorpayPaymentId: input.razorpayPaymentId, razorpaySignature: input.razorpaySignature }).where(eq(orders.id, input.orderId));
@@ -518,13 +553,24 @@ export const appRouter = router({
       await db.delete(categories).where(eq(categories.id, input.id));
       return { success: true };
     }),
-    settings: adminProcedure.query(() => getPaymentSettings()),
-    updateSettings: adminProcedure.input(z.object({ upiId: z.string().optional(), payeeName: z.string().optional(), qrCodeImageUrl: z.string().optional(), isRazorpayEnabled: z.boolean(), isManualQrEnabled: z.boolean() })).mutation(async ({ input }) => {
+    // Admin view. The stored secret is reported as a boolean flag rather than
+    // the value, so it never lands in the DOM or a client cache.
+    settings: adminProcedure.query(async () => {
+      const row = await getPaymentSettings();
+      if (!row) return null;
+      const { razorpayKeySecret, ...rest } = row;
+      return { ...rest, razorpayKeySecretSet: Boolean(razorpayKeySecret) };
+    }),
+    updateSettings: adminProcedure.input(z.object({ upiId: z.string().optional(), payeeName: z.string().optional(), qrCodeImageUrl: z.string().optional(), isRazorpayEnabled: z.boolean(), isManualQrEnabled: z.boolean(), razorpayKeyId: z.string().optional(), razorpayKeySecret: z.string().optional() })).mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database is not configured");
+      const { razorpayKeySecret, ...rest } = input;
+      // An empty secret means "leave the stored one alone" — the console
+      // cannot read the current value back, so blanking it must not clear it.
+      const values = razorpayKeySecret?.trim() ? { ...rest, razorpayKeySecret: razorpayKeySecret.trim() } : rest;
       const existing = await getPaymentSettings();
-      if (existing) await db.update(paymentSettings).set(input).where(eq(paymentSettings.id, existing.id));
-      else await db.insert(paymentSettings).values(input);
+      if (existing) await db.update(paymentSettings).set(values).where(eq(paymentSettings.id, existing.id));
+      else await db.insert(paymentSettings).values(values as typeof paymentSettings.$inferInsert);
       publishRealtime({ type: "catalog.updated", scope: "public", data: { action: "payment-settings-updated" } });
       return { success: true };
     }),
@@ -648,6 +694,55 @@ export const appRouter = router({
       await db.delete(users).where(eq(users.id, input.id));
       return { success: true };
     }),
+
+    // -- Ads management -------------------------------------------------------
+    ads: adminProcedure.query(() => listAds()),
+    createAd: adminProcedure.input(z.object({
+      name: z.string().min(1).max(200),
+      slot: z.enum(["sidebar", "in-article", "banner-top", "banner-bottom"]),
+      type: z.enum(["html", "internal"]).default("html"),
+      snippet: z.string().optional(),
+      metaTags: z.string().optional(),
+      adSenseClientId: z.string().optional(),
+      adSenseSlotId: z.string().optional(),
+      promoTitle: z.string().optional(),
+      promoDescription: z.string().optional(),
+      promoCtaText: z.string().optional(),
+      promoCtaLink: z.string().optional(),
+      promoImageUrl: z.string().optional(),
+      sortOrder: z.number().int().default(0),
+      isActive: z.boolean().default(true),
+    })).mutation(async ({ input }) => {
+      const ad = await createAd(input);
+      return { success: true, ad };
+    }),
+    updateAd: adminProcedure.input(z.object({
+      id: z.number().int().positive(),
+      name: z.string().min(1).max(200).optional(),
+      slot: z.enum(["sidebar", "in-article", "banner-top", "banner-bottom"]).optional(),
+      type: z.enum(["html", "internal"]).optional(),
+      snippet: z.string().optional(),
+      metaTags: z.string().optional(),
+      adSenseClientId: z.string().optional(),
+      adSenseSlotId: z.string().optional(),
+      promoTitle: z.string().optional(),
+      promoDescription: z.string().optional(),
+      promoCtaText: z.string().optional(),
+      promoCtaLink: z.string().optional(),
+      promoImageUrl: z.string().optional(),
+      sortOrder: z.number().int().optional(),
+      isActive: z.boolean().optional(),
+    })).mutation(async ({ input }) => {
+      const { id, ...values } = input;
+      const ad = await updateAd(id, values);
+      return { success: true, ad };
+    }),
+    deleteAd: adminProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ input }) => {
+      await deleteAd(input.id);
+      return { success: true };
+    }),
+    // Public endpoint for frontend ad rendering
+    activeAdsBySlot: publicProcedure.input(z.object({ slot: z.enum(["sidebar", "in-article", "banner-top", "banner-bottom"]) })).query(({ input }) => listActiveAdsBySlot(input.slot)),
   }),
 });
 

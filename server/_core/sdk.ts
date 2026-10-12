@@ -4,7 +4,7 @@ import axios, { type AxiosInstance } from "axios";
 import { parse as parseCookieHeader } from "cookie";
 import type { Request } from "express";
 import { SignJWT, jwtVerify } from "jose";
-import type { User } from "../../drizzle/schema";
+import type { User, InsertUser } from "../../drizzle/schema";
 import * as db from "../db";
 import { ENV } from "./env";
 import type {
@@ -324,13 +324,16 @@ class SDKServer {
     if (!user) {
       try {
         const userInfo = await this.getUserInfoWithJwt(sessionToken ?? "");
-        await db.upsertUser({
+        const upsertData: Partial<InsertUser> = {
           openId: userInfo.openId,
           name: userInfo.name || null,
-          email: userInfo.email ?? null,
-          loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+          loginMethod: userInfo.loginMethod ?? userInfo.platform ?? undefined,
           lastSignedIn: signedInAt,
-        });
+        };
+        if (userInfo.email) {
+          upsertData.email = userInfo.email;
+        }
+        await db.upsertUser(upsertData as InsertUser);
         user = await db.getUserByOpenId(userInfo.openId);
       } catch (error) {
         console.error("[Auth] Failed to sync user from OAuth:", error);
@@ -342,10 +345,7 @@ class SDKServer {
       throw ForbiddenError("User not found");
     }
 
-    await db.upsertUser({
-      openId: user.openId,
-      lastSignedIn: signedInAt,
-    });
+    await db.upsertUser({ openId: user.openId, lastSignedIn: signedInAt });
 
     return user;
   }
@@ -357,7 +357,8 @@ const CRON_OPEN_ID_PREFIX = "cron_";
 const FIREBASE_OPEN_ID_PREFIX = "firebase_";
 
 /** Result of `sdk.authenticateRequest`. Cron callbacks set `isCron=true` and `taskUid`; see `/home/ubuntu/skills/webdev-periodic-updates/SKILL.md`. */
-export type AuthenticatedUser = User & {
+export type AuthenticatedUser = Omit<User, "photoUrl" | "isDisabled" | "passwordHash"> & {
+  loginMethod: string | null;
   taskUid?: string;
   isCron?: boolean;
 };
@@ -370,9 +371,14 @@ function buildCronUser(
     id: -1,
     openId: userInfo.openId,
     name: userInfo.name || "Manus Scheduled Task",
-    email: null,
-    loginMethod: null,
+    email: "",
+    username: null,
+    photoUrl: null,
     role: "user",
+    isDisabled: false,
+    loginMethod: "",
+    passwordHash: null,
+    firebaseUid: null,
     createdAt: now,
     updatedAt: now,
     lastSignedIn: now,

@@ -4,6 +4,7 @@ import type { Express, Request, Response } from "express";
 import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
+import type { InsertUser } from "../../drizzle/schema";
 
 function getQueryParam(req: Request, key: string): string | undefined {
   const value = req.query[key];
@@ -40,13 +41,16 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
 
-      await db.upsertUser({
+      const upsertData: Partial<InsertUser> = {
         openId: userInfo.openId,
         name: userInfo.name || null,
-        email: userInfo.email ?? null,
-        loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+        loginMethod: userInfo.loginMethod ?? userInfo.platform ?? undefined,
         lastSignedIn: new Date(),
-      });
+      };
+      if (userInfo.email) {
+        upsertData.email = userInfo.email;
+      }
+      await db.upsertUser(upsertData as InsertUser);
 
       const sessionToken = await sdk.createSessionToken(userInfo.openId, {
         name: userInfo.name || "",

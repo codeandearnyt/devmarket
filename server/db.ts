@@ -2,6 +2,7 @@ import { and, asc, desc, eq, like, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import {
+  ads,
   analyticsEvents,
   blogPosts,
   categories,
@@ -77,28 +78,29 @@ export async function withDbRetry<T>(operation: (db: NonNullable<Awaited<ReturnT
   throw lastError;
 }
 
-export async function upsertUser(user: InsertUser): Promise<void> {
+export async function upsertUser(user: { openId: string } & Partial<InsertUser>): Promise<void> {
   if (!user.openId) throw new Error("User openId is required for upsert");
-  const db = await getDb();
-  if (!db) return;
-  const values: InsertUser = { openId: user.openId };
+  
+  // Build values object for insert
+  const insertValues: Record<string, unknown> = { openId: user.openId };
   const updateSet: Record<string, unknown> = {};
-  (['name', 'email', 'loginMethod', 'passwordHash', 'photoUrl', 'firebaseUid'] as const).forEach(field => {
+  
+  const fields = ['name', 'email', 'username', 'loginMethod', 'passwordHash', 'photoUrl', 'firebaseUid', 'isDisabled', 'role'] as const;
+  fields.forEach(field => {
     if (user[field] !== undefined) {
-      values[field] = user[field] ?? null;
-      updateSet[field] = user[field] ?? null;
+      const value = user[field] ?? null;
+      insertValues[field] = value;
+      updateSet[field] = value;
     }
   });
-  values.lastSignedIn = user.lastSignedIn ?? new Date();
-  updateSet.lastSignedIn = values.lastSignedIn;
-  if (user.role !== undefined) {
-    values.role = user.role;
-    updateSet.role = user.role;
-  } else if (user.openId === ENV.ownerOpenId) {
-    values.role = 'admin';
-    updateSet.role = 'admin';
-  }
-  await db.insert(users).values(values).onConflictDoUpdate({ target: users.openId, set: updateSet });
+  
+  insertValues.lastSignedIn = user.lastSignedIn ?? new Date();
+  updateSet.lastSignedIn = insertValues.lastSignedIn;
+  
+  const db = await getDb();
+  if (!db) return;
+  
+  await db.insert(users).values(insertValues as typeof users.$inferInsert).onConflictDoUpdate({ target: users.openId, set: updateSet });
 }
 
 // ---------------------------------------------------------------------------
@@ -198,6 +200,7 @@ export async function getUserByEmail(email: string) {
 
 /** Fields a user is allowed to change about themselves. */
 export type ProfilePatch = {
+  name?: string | null;
   firstName?: string | null;
   lastName?: string | null;
   username?: string | null;
@@ -227,12 +230,9 @@ export async function updateUserProfile(userId: number, patch: ProfilePatch) {
       set[key] = value === "" ? null : value;
     }
 
-    // Recompute the display name whenever either half of it changed.
-    if (patch.firstName !== undefined || patch.lastName !== undefined) {
-      const first = patch.firstName === undefined ? (current.firstName ?? "") : (patch.firstName ?? "");
-      const last = patch.lastName === undefined ? (current.lastName ?? "") : (patch.lastName ?? "");
-      const combined = `${first} ${last}`.trim();
-      set.name = combined || null;
+    // Recompute the display name if name is provided
+    if (patch.name !== undefined) {
+      set.name = patch.name === "" ? null : patch.name;
     }
 
     set.updatedAt = new Date();
@@ -404,7 +404,7 @@ export async function setReviewApproval(id: number, isApproved: boolean) {
 export async function setReviewReply(id: number, adminReply: string | null) {
   const db = await getDb();
   if (!db) throw new Error("Database is not configured");
-  await db.update(reviews).set({ adminReply, repliedAt: adminReply ? new Date() : null }).where(eq(reviews.id, id));
+  await db.update(reviews).set({ adminReply, updatedAt: adminReply ? new Date() : undefined }).where(eq(reviews.id, id));
   const result = await db.select().from(reviews).where(eq(reviews.id, id)).limit(1);
   return result[0];
 }
@@ -612,4 +612,44 @@ export async function getOrderForUser(id: number, userId: number) {
   if (!db) return undefined;
   const result = await db.select({ order: orders, product: products }).from(orders).innerJoin(products, eq(orders.productId, products.id)).where(and(eq(orders.id, id), eq(orders.userId, userId))).limit(1);
   return result[0];
+}
+
+/** List all ads (admin) */
+export async function listAds() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(ads).orderBy(asc(ads.sortOrder), desc(ads.createdAt));
+}
+
+/** List active ads by slot (public) */
+export async function listActiveAdsBySlot(slot: "sidebar" | "in-article" | "banner-top" | "banner-bottom") {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(ads).where(and(eq(ads.slot, slot), eq(ads.isActive, true))).orderBy(asc(ads.sortOrder));
+}
+
+/** Create a new ad (admin) */
+export async function createAd(data: typeof ads.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.insert(ads).values(data);
+  const result = await db.select().from(ads).orderBy(desc(ads.id)).limit(1);
+  return result[0];
+}
+
+/** Update an ad (admin) */
+export async function updateAd(id: number, data: Partial<typeof ads.$inferInsert>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.update(ads).set({ ...data, updatedAt: new Date() }).where(eq(ads.id, id));
+  const result = await db.select().from(ads).where(eq(ads.id, id)).limit(1);
+  return result[0];
+}
+
+/** Delete an ad (admin) */
+export async function deleteAd(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not configured");
+  await db.delete(ads).where(eq(ads.id, id));
+  return { success: true };
 }

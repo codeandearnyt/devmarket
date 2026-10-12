@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, Check, ChevronRight, CreditCard, Eye, EyeOff, FolderPlus, FolderTree, LayoutDashboard, Layers3, Loader2, Lock, LogOut, MessageSquareText, PackagePlus, Settings2, ShieldCheck, Users, X } from "lucide-react";
+import { BarChart3, BookOpen, Check, ChevronRight, CreditCard, Eye, EyeOff, FolderPlus, FolderTree, LayoutDashboard, Layers3, Loader2, Lock, LogOut, Megaphone, MessageSquareText, PackagePlus, Settings2, ShieldCheck, Trash2, Users, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
@@ -12,6 +12,8 @@ import DevMarketIcon from "@/assets/dev-market-icon.png";
 import BlogAdminPanel from "@/components/BlogAdminPanel";
 import AdminInsightsPanel from "@/components/AdminInsightsPanel";
 import ReviewModerationPanel from "@/components/ReviewModerationPanel";
+import AdsManager from "@/components/AdsManager";
+import SettingsPanel from "@/components/SettingsPanel";
 import ProductForm, { emptyProductDraft, type ProductDraft } from "@/components/ProductForm";
 import CategoryManager from "@/components/CategoryManager";
 import ProductTypeManager from "@/components/ProductTypeManager";
@@ -59,6 +61,29 @@ export default function AdminDashboard() {
   const productTypes = trpc.admin.productTypes.useQuery(undefined, { enabled: isAdmin });
   const createProduct = trpc.admin.createProduct.useMutation({ onSuccess: () => { products.refetch(); setShowProductForm(false); setEditingProductId(null); } });
   const updateProduct = trpc.admin.updateProduct.useMutation({ onSuccess: () => { products.refetch(); setShowProductForm(false); setEditingProductId(null); } });
+  const deleteProduct = trpc.admin.deleteProduct.useMutation({
+    onSuccess: () => { products.refetch(); toast.success("Product deleted"); },
+    onError: error => toast.error(error.message),
+  });
+
+  /**
+   * Delete a product.
+   *
+   * Products own reviews and orders, so this is deliberately awkward: the
+   * console asks for the exact slug to type before anything is removed.
+   * A single mis-click should not be able to drop a paid-for catalogue entry.
+   */
+  function confirmDelete(product: { id: number; title: string; slug: string }) {
+    const typed = window.prompt(
+      `Delete "${product.title}"?\n\nThis cannot be undone. Orders that reference it are kept.\n\nType the slug to confirm:\n${product.slug}`,
+    );
+    if (typed === null) return;
+    if (typed.trim() !== product.slug) {
+      toast.error("Slug did not match — nothing was deleted");
+      return;
+    }
+    deleteProduct.mutate({ id: product.id });
+  }
 
   async function unlockConsole(event: FormEvent) {
     event.preventDefault();
@@ -185,11 +210,12 @@ export default function AdminDashboard() {
     { id: "types", label: "Types", icon: <Layers3 size={16} /> },
     { id: "users", label: "Users", icon: <Users size={16} /> },
     { id: "blog", label: "Blog", icon: <BookOpen size={16} /> },
+    { id: "ads", label: "Ads", icon: <Megaphone size={16} /> },
     { id: "settings", label: "Settings", icon: <Settings2 size={16} /> },
   ];
 
   return (
-    <div className="liquid-page min-h-screen bg-[#eef8fa] text-[#172039]">
+    <div className="liquid-page admin-page min-h-screen bg-[#eef8fa] text-[#172039]">
       <div className="flex min-h-screen flex-col lg:flex-row">
         <aside className="admin-glass-nav border-b border-[#d7e8eb] bg-[#172039] text-white lg:min-h-screen lg:w-72 lg:border-b-0 lg:border-r lg:border-[#172039] fixed max-lg:static lg:inset-y-0 lg:left-0 z-40 flex flex-col">
           <div className="flex items-center justify-between px-6 py-6 lg:block">
@@ -251,7 +277,7 @@ export default function AdminDashboard() {
               <Metric label="Catalog" value={String(stats.data?.totalProducts ?? products.data?.length ?? 0).padStart(2, "0")} detail="Published products" tone="lime" />
             </div>
             <div className="mt-8 grid gap-5 xl:grid-cols-[1.2fr_.8fr]">
-              <section className="rounded-2xl border border-[#d7e8eb] bg-[#f8ffff] p-6">
+              <section className="neu-admin-card p-6">
                 <div className="flex items-center justify-between">
                   <div><p className="font-mono text-[10px] uppercase tracking-[.16em] text-[#71809f]">Activity</p><h2 className="mt-2 font-display text-2xl font-semibold tracking-[-.05em]">Recent orders</h2></div>
                   <BarChart3 className="text-[#13b8b0]" />
@@ -266,15 +292,15 @@ export default function AdminDashboard() {
                   ))}
                 </div>
               </section>
-              <section className="rounded-2xl border border-[#d7e8eb] bg-[#f8ffff] p-6">
+              <section className="neu-admin-card p-6">
                 <div className="flex items-center justify-between">
                   <div><p className="font-mono text-[10px] uppercase tracking-[.16em] text-[#71809f]">Quick actions</p><h2 className="mt-2 font-display text-2xl font-semibold tracking-[-.05em]">Manage</h2></div>
                   <ChevronRight className="text-[#13b8b0]" />
                 </div>
                 <div className="mt-7 space-y-3">
-                  <button onClick={() => setTab("products")} className="flex w-full items-center justify-between rounded-xl border border-[#d7e8eb] bg-[#f8ffff] px-4 py-3 text-sm font-semibold transition hover:border-[#13b8b0]"><span>Add product</span><FolderPlus size={16} className="text-[#13b8b0]" /></button>
-                  <button onClick={() => setTab("blog")} className="flex w-full items-center justify-between rounded-xl border border-[#d7e8eb] bg-[#f8ffff] px-4 py-3 text-sm font-semibold transition hover:border-[#13b8b0]"><span>Write blog post</span><BookOpen size={16} className="text-[#13b8b0]" /></button>
-                  <button onClick={() => setTab("settings")} className="flex w-full items-center justify-between rounded-xl border border-[#d7e8eb] bg-[#f8ffff] px-4 py-3 text-sm font-semibold transition hover:border-[#13b8b0]"><span>Payment settings</span><Settings2 size={16} className="text-[#13b8b0]" /></button>
+                  <button onClick={() => setTab("products")} className="neu-admin-card-inset flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-[#172039] transition hover:text-[#0f8f88]"><span>Add product</span><FolderPlus size={16} className="text-[#13b8b0]" /></button>
+                  <button onClick={() => setTab("blog")} className="neu-admin-card-inset flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-[#172039] transition hover:text-[#0f8f88]"><span>Write blog post</span><BookOpen size={16} className="text-[#13b8b0]" /></button>
+                  <button onClick={() => setTab("settings")} className="neu-admin-card-inset flex w-full items-center justify-between px-4 py-3 text-sm font-semibold text-[#172039] transition hover:text-[#0f8f88]"><span>Payment settings</span><Settings2 size={16} className="text-[#13b8b0]" /></button>
                 </div>
               </section>
             </div>
@@ -284,7 +310,7 @@ export default function AdminDashboard() {
           {tab === "products" && <>
             <div className="mb-6 flex items-center justify-between">
               <div><p className="font-mono text-[10px] uppercase tracking-[.16em] text-[#71809f]">Catalog</p><h2 className="mt-2 font-display text-2xl font-semibold tracking-[-.05em]">Products</h2></div>
-              <button onClick={() => { setEditingProductId(null); setProductDraft(emptyProductDraft); setShowProductForm(true); }} className="btn inline-flex items-center rounded-full bg-[#172039] px-4 py-2.5 text-sm font-semibold text-white"><FolderPlus size={16} className="mr-2" /> Add product</button>
+              <button onClick={() => { setEditingProductId(null); setProductDraft(emptyProductDraft); setShowProductForm(true); }} className="neu-admin-btn-dark inline-flex items-center px-4 py-2.5 text-sm font-semibold"><FolderPlus size={16} className="mr-2" /> Add product</button>
             </div>
             {showProductForm && (
               <ProductForm
@@ -300,17 +326,36 @@ export default function AdminDashboard() {
             )}
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {products.data?.map(product => (
-                <div key={product.id} className="rounded-2xl border border-[#d7e8eb] bg-[#f8ffff] p-5">
-                  <div className="flex items-start justify-between">
-                    <div><p className="font-mono text-[10px] uppercase tracking-[.16em] text-[#71809f]">{product.type}</p><h3 className="mt-2 font-display text-xl font-semibold tracking-[-.03em]">{product.title}</h3></div>
-                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${product.isPublished ? "bg-[#c7f76d] text-[#172039]" : "bg-[#ffe0d7] text-[#a33e23]"}`}>
+                <div key={product.id} className="neu-admin-card p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div><p className="font-mono text-[10px] uppercase tracking-[.16em] text-[#5c7f8c]">{product.type}</p><h3 className="mt-2 font-display text-xl font-semibold tracking-[-.03em] text-[#172039]">{product.title}</h3></div>
+                    <span className={`neu-admin-pill ${product.isPublished ? "text-[#0f7a18]" : "text-[#a33e23]"}`}>
                       {product.isPublished ? "Live" : "Draft"}
                     </span>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-[#53617d]">{product.shortDescription}</p>
-                  <div className="mt-4 flex items-center justify-between border-t border-[#e9f7f6] pt-4">
-                    <span className="font-display text-lg font-semibold">{priceLabel(product.price)}</span>
-                    <button onClick={() => { setEditingProductId(product.id); setProductDraft({ title: product.title, slug: product.slug, shortDescription: product.shortDescription, description: product.description, type: product.type, categoryId: product.categoryId, price: product.price, thumbnailUrl: product.thumbnailUrl, fileUrl: product.fileUrl, previewImages: (product.previewImages as string[] | null) ?? [] }); setShowProductForm(true); }} className="text-sm font-semibold text-[#13b8b0]">Edit</button>
+                  <p className="mt-3 text-sm leading-6 text-[#4a6b78]">{product.shortDescription}</p>
+                  <div className="mt-4 flex items-center justify-between gap-3 border-t border-transparent pt-4">
+                    <span className="font-display text-lg font-semibold text-[#172039]">{priceLabel(product.price)}</span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => { setEditingProductId(product.id); setProductDraft({ title: product.title, slug: product.slug, shortDescription: product.shortDescription, description: product.description, type: product.type, categoryId: product.categoryId, price: product.price, thumbnailUrl: product.thumbnailUrl, fileUrl: product.fileUrl, previewImages: (product.previewImages as string[] | null) ?? [] }); setShowProductForm(true); }}
+                        className="text-sm font-semibold text-[#0f8f88] transition hover:text-[#0b6f6a]"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => confirmDelete(product)}
+                        disabled={deleteProduct.isPending}
+                        title={`Delete ${product.title}`}
+                        aria-label={`Delete ${product.title}`}
+                        className="neu-admin-icon-btn neu-admin-icon-btn-danger disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {deleteProduct.isPending && deleteProduct.variables?.id === product.id
+                          ? <Loader2 size={15} className="animate-spin" />
+                          : <Trash2 size={15} />}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -320,6 +365,7 @@ export default function AdminDashboard() {
           {tab === "categories" && <CategoryManager />}
           {tab === "types" && <ProductTypeManager />}
           {tab === "users" && <UserManager operatorId={adminUser?.id} />}
+          {tab === "ads" && <AdsManager />}
           {tab === "settings" && <SettingsPanel />}
         </main>
       </div>
@@ -327,28 +373,3 @@ export default function AdminDashboard() {
   );
 }
 
-function SettingsPanel() {
-  const settings = trpc.admin.settings.useQuery();
-  const mutation = trpc.admin.updateSettings.useMutation({ onSuccess: () => settings.refetch() });
-  const [upiId, setUpiId] = useState("");
-  const [payeeName, setPayeeName] = useState("");
-  const current = settings.data;
-  return (
-    <section className="mt-9 max-w-2xl rounded-2xl border border-[#d7e8eb] bg-[#f8ffff] p-6">
-      <div className="flex items-center gap-3">
-        <Settings2 className="text-[#13b8b0]" />
-        <div><p className="font-mono text-[10px] uppercase tracking-[.16em] text-[#71809f]">Checkout configuration</p><h2 className="mt-2 font-display text-2xl font-semibold">Payment settings</h2></div>
-      </div>
-      <p className="mt-4 text-sm leading-6 text-[#53617d]">Keep credentials server-side. This panel controls which verified payment methods buyers can see and the UPI display details they receive.</p>
-      <div className="mt-7 space-y-4">
-        <label className="block text-sm font-semibold">UPI ID<input value={upiId || current?.upiId || ""} onChange={e => setUpiId(e.target.value)} className="mt-2 w-full rounded-xl border border-[#d7e8eb] bg-transparent px-4 py-3 outline-none focus:border-[#13b8b0]" /></label>
-        <label className="block text-sm font-semibold">Payee name<input value={payeeName || current?.payeeName || ""} onChange={e => setPayeeName(e.target.value)} className="mt-2 w-full rounded-xl border border-[#d7e8eb] bg-transparent px-4 py-3 outline-none focus:border-[#13b8b0]" /></label>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="rounded-xl bg-[#e9f7f6] p-4"><p className="text-sm font-semibold">Razorpay</p><p className="mt-1 text-xs text-[#53617d]">Enabled · server verified</p></div>
-          <div className="rounded-xl bg-[#e9f7f6] p-4"><p className="text-sm font-semibold">Manual QR</p><p className="mt-1 text-xs text-[#53617d]">Enabled · admin review</p></div>
-        </div>
-        <button onClick={() => mutation.mutate({ upiId: upiId || current?.upiId || "", payeeName: payeeName || current?.payeeName || "", qrCodeImageUrl: current?.qrCodeImageUrl ?? "", isRazorpayEnabled: current?.isRazorpayEnabled ?? true, isManualQrEnabled: current?.isManualQrEnabled ?? true })} className="btn rounded-full bg-[#172039] px-5 py-3 text-sm font-semibold text-white">Save settings</button>
-      </div>
-    </section>
-  );
-}

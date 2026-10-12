@@ -82,8 +82,8 @@ export default function BlogArticle() {
           seed={adSeed}
           contentRef={contentRef}
           header={<BlogPostHeader article={article} readingMinutes={minutes} />}
-          content={ads => (
-            <BlogPostContent sections={sections} words={words} ads={ads} contentRef={contentRef} />
+          content={(ads, managedAds) => (
+            <BlogPostContent sections={sections} words={words} ads={ads} managedAds={managedAds} contentRef={contentRef} />
           )}
           footer={<BlogPostFooter tags={tags} category={article.category} />}
         />

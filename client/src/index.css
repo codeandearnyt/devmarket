@@ -270,3 +270,219 @@ input, select, textarea { background: rgba(255,255,255,.72) !important; border-c
     inset -6px -6px 12px var(--neu-light),
     0 0 0 4px rgba(163, 62, 35, .16) !important;
 }
+
+/* =====================================================================
+   Neumorphism — admin console
+   ---------------------------------------------------------------------
+   Same two-shadow moulding idea as the profile page, re-tuned for the
+   console's cooler base so it reads as one product rather than two.
+
+   Differences from the profile block, all deliberate:
+   1. Focus rings are mandatory. Pure neumorphism fails WCAG on focus
+      visibility, so every interactive well carries an explicit halo.
+   2. Contrast is held at 4.5:1 by keeping the base *lighter* than the
+      text, never by lightening the text.
+   3. Press feedback is inset + 1px translate, which survives keyboard
+      activation (no :hover-only affordances).
+
+   `!important` is needed wherever index.css sets global `section` border
+   or `input` background rules with that flag.
+   ===================================================================== */
+.admin-page {
+  --neu-a-base: #e7f1f5;
+  --neu-a-surface: #f4fafc;
+  --neu-a-shade: rgba(122, 158, 175, .5);
+  --neu-a-light: rgba(255, 255, 255, .95);
+  --neu-a-out:
+    9px 9px 20px var(--neu-a-shade),
+    -9px -9px 20px var(--neu-a-light);
+  --neu-a-in:
+    inset 6px 6px 12px var(--neu-a-shade),
+    inset -6px -6px 12px var(--neu-a-light);
+  background: var(--neu-a-base);
+}
+
+/* Raised plate: cards, panels, stat tiles, table containers. */
+.admin-page .neu-admin-card {
+  background: var(--neu-a-surface);
+  border-color: transparent !important;
+  border-radius: 1.5rem;
+  box-shadow: var(--neu-a-out);
+}
+
+/* Slightly recessed plate — for regions that read as a group of controls
+   rather than a single card (form sections inside a card). */
+.admin-page .neu-admin-card-inset {
+  background: var(--neu-a-base);
+  border-color: transparent !important;
+  border-radius: 1.25rem;
+  box-shadow: var(--neu-a-in);
+}
+
+/* Small raised chip used for icons and badges. */
+.admin-page .neu-admin-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.9rem;
+  color: #0f8f88;
+  background: var(--neu-a-surface);
+  box-shadow: 5px 5px 12px var(--neu-a-shade), -5px -5px 12px var(--neu-a-light);
+}
+.admin-page .neu-admin-icon-accent { color: #fff; background: #13b8b0; box-shadow: 5px 5px 12px rgba(19, 184, 176, .35), -5px -5px 12px var(--neu-a-light); }
+
+/* Carved well: every input, textarea and select. Paired with the focus
+   helper so keyboard users always see where they are. */
+.admin-page .neu-admin-well {
+  background: var(--neu-a-base) !important;
+  border-color: transparent !important;
+  box-shadow: var(--neu-a-in) !important;
+  color: #172039;
+}
+.admin-page .neu-admin-well::placeholder { color: #8fa8b3; }
+.admin-page .neu-admin-well:focus {
+  box-shadow: var(--neu-a-in), 0 0 0 3px rgba(19, 184, 176, .3) !important;
+}
+.admin-page select.neu-admin-well {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%235c7f8c' stroke-width='1.6'%3E%3Cpath d='M1 1.5 6 6.5l5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 0.7rem;
+  padding-right: 2.5rem;
+}
+
+/* Buttons stand proud, sink when pressed. */
+.admin-page .neu-admin-btn {
+  background: var(--neu-a-surface);
+  border: 0;
+  color: #172039;
+  border-radius: 999px;
+  box-shadow: var(--neu-a-out);
+  transition: box-shadow .16s ease, transform .16s ease, background-color .16s ease;
+}
+.admin-page .neu-admin-btn:hover { background: #fff; }
+.admin-page .neu-admin-btn:active { box-shadow: var(--neu-a-in); transform: translateY(1px); }
+
+.admin-page .neu-admin-btn-dark {
+  background: #172039;
+  border: 0;
+  color: #fff;
+  border-radius: 999px;
+  box-shadow: 7px 7px 16px rgba(23, 32, 57, .3), -7px -7px 16px var(--neu-a-light);
+  transition: box-shadow .16s ease, transform .16s ease, background-color .16s ease;
+}
+.admin-page .neu-admin-btn-dark:hover { background: #1f2b4d; }
+.admin-page .neu-admin-btn-dark:active { box-shadow: var(--neu-a-in); transform: translateY(1px); }
+
+.admin-page .neu-admin-btn-danger {
+  background: #a33e23;
+  border: 0;
+  color: #fff;
+  border-radius: 999px;
+  box-shadow: 6px 6px 14px rgba(163, 62, 35, .3), -6px -6px 14px var(--neu-a-light);
+  transition: box-shadow .16s ease, transform .16s ease, background-color .16s ease;
+}
+.admin-page .neu-admin-btn-danger:hover { background: #8a3520; }
+.admin-page .neu-admin-btn-danger:active { box-shadow: var(--neu-a-in); transform: translateY(1px); }
+
+.admin-page .neu-admin-btn-danger-ghost {
+  background: #fdefeb;
+  border: 0;
+  color: #a33e23;
+  border-radius: 999px;
+  box-shadow: 5px 5px 12px rgba(206, 165, 150, .45), -5px -5px 12px var(--neu-a-light);
+  transition: box-shadow .16s ease, transform .16s ease, background-color .16s ease;
+}
+.admin-page .neu-admin-btn-danger-ghost:hover { background: #ffe4dc; }
+.admin-page .neu-admin-btn-danger-ghost:active { box-shadow: var(--neu-a-in); transform: translateY(1px); }
+
+/* Small icon-only actions in tables (edit/delete). */
+.admin-page .neu-admin-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--neu-a-surface);
+  color: #0f8f88;
+  box-shadow: 4px 4px 10px var(--neu-a-shade), -4px -4px 10px var(--neu-a-light);
+  transition: box-shadow .16s ease, transform .16s ease, color .16s ease;
+}
+.admin-page .neu-admin-icon-btn:hover { color: #0b6f6a; }
+.admin-page .neu-admin-icon-btn:active { box-shadow: var(--neu-a-in); transform: translateY(1px); }
+.admin-page .neu-admin-icon-btn-danger { color: #a33e23; }
+.admin-page .neu-admin-icon-btn-danger:hover { color: #8a3520; }
+
+/* Status pill: moulded, not filled, so it does not fight the surfaces. */
+.admin-page .neu-admin-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: var(--neu-a-surface);
+  color: #172039;
+  box-shadow: 3px 3px 8px var(--neu-a-shade), -3px -3px 8px var(--neu-a-light);
+}
+
+/* Toggle switch: the track is a well, the thumb is a raised chip that
+   travels into the well when the switch is on. */
+.admin-page .neu-admin-switch {
+  position: relative;
+  flex: none;
+  width: 3.25rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--neu-a-base);
+  box-shadow: var(--neu-a-in);
+  cursor: pointer;
+  transition: box-shadow .2s ease, background-color .2s ease;
+}
+.admin-page .neu-admin-switch-on { background: #bdeeea; }
+.admin-page .neu-admin-switch:focus-visible { outline: 3px solid rgba(19, 184, 176, .45); outline-offset: 2px; }
+.admin-page .neu-admin-switch-thumb {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: var(--neu-a-surface);
+  box-shadow: 3px 3px 7px var(--neu-a-shade), -3px -3px 7px var(--neu-a-light);
+  transition: transform .2s cubic-bezier(.23, 1, .32, 1);
+}
+.admin-page .neu-admin-switch-on .neu-admin-switch-thumb { transform: translateX(1.5rem); background: #13b8b0; }
+
+/* Table header strip sits just above the rows. */
+.admin-page .neu-admin-table-head {
+  background: var(--neu-a-base);
+  border-color: transparent !important;
+}
+
+/* Scrollable rail inside a carved well. */
+.admin-page .neu-admin-scroll { scrollbar-width: thin; scrollbar-color: rgba(19, 184, 176, .35) transparent; }
+
+/* Respect the OS setting: drop the depth cues, keep the halos. */
+@media (prefers-reduced-motion: reduce) {
+  .admin-page .neu-admin-btn,
+  .admin-page .neu-admin-btn-dark,
+  .admin-page .neu-admin-btn-danger,
+  .admin-page .neu-admin-btn-danger-ghost,
+  .admin-page .neu-admin-icon-btn,
+  .admin-page .neu-admin-switch,
+  .admin-page .neu-admin-switch-thumb { transition: none; }
+  .admin-page .neu-admin-btn:active,
+  .admin-page .neu-admin-btn-dark:active,
+  .admin-page .neu-admin-btn-danger:active,
+  .admin-page .neu-admin-btn-danger-ghost:active,
+  .admin-page .neu-admin-icon-btn:active { transform: none; }
+}
