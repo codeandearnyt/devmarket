@@ -1,0 +1,12 @@
+# ads.txt - authorized digital sellers for DevMarket
+#
+# Format per IAB Tech Lab ads.txt v1.1:
+#   <exchange>, <publisher or exchange ID>, <certification/relationship>, <certification ID>
+#
+# AdSense serves this site's inventory directly, so the relationship is DIRECT
+# rather than a reseller.
+#
+# NOTE: this file must be served from the exact apex domain (or the subdomain
+# that AdSense has approved) over HTTPS at /ads.txt. AdSense crawlers request
+# it at the root; a 404 or a redirect means the record is ignored.
+google.com, pub-2779836991539242, DIRECT, f08c47fec0942fa0
