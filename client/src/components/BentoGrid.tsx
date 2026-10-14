@@ -1,6 +1,38 @@
 import { Code2, CreditCard, Download, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import ApplePay from "@/assets/apple-pay-icon.svg";
+import FamPay from "@/assets/fampay.svg";
+import Government from "@/assets/government-icon.svg";
+import Mastercard from "@/assets/master-card-icon.svg";
+import Razorpay from "@/assets/razorpay-icon.svg";
+import UsdCoin from "@/assets/us-dollar-coin-color-icon.svg";
+import Upi from "@/assets/upi-payment-icon.svg";
+import Visa from "@/assets/visa-icon.svg";
+
+/**
+ * Payment marks shown on the hero tile.
+ *
+ * Each one is an <img> rather than an inline SVG because they are supplied
+ * brand artwork: inlining would let a stray CSS rule recolour a payment logo,
+ * and payment marks are exactly the kind of thing that has to look right.
+ *
+ * Their aspect ratios differ a lot (Razorpay is 4.6:1, FamPay and the USD coin
+ * are 1:1), so each logo sits inside a fixed-size chip with object-contain.
+ * Scaling them to a common *height* instead would let the Razorpay wordmark
+ * stretch to four times the width of the Visa mark.
+ */
+const PAYMENT_METHODS: { label: string; src: string }[] = [
+  { label: "UPI", src: Upi },
+  { label: "Visa", src: Visa },
+  { label: "Mastercard", src: Mastercard },
+  { label: "Razorpay", src: Razorpay },
+  { label: "Apple Pay", src: ApplePay },
+  { label: "FamPay", src: FamPay },
+  { label: "USD", src: UsdCoin },
+  { label: "Government payments", src: Government },
+];
+
 /**
  * Bento grid for the storefront.
  *
@@ -26,6 +58,8 @@ type BentoTile = {
   stat?: { value: string; label: string };
   /** Grid span at lg. Omitted means a single cell. */
   span?: string;
+  /** Render the accepted payment marks. Only the hero tile has room for them. */
+  showPayments?: boolean;
 };
 
 const TILES: BentoTile[] = [
@@ -37,6 +71,7 @@ const TILES: BentoTile[] = [
     tint: "#13b8b0",
     stat: { value: "Instant", label: "unlocked on payment" },
     span: "lg:col-span-2 lg:row-span-2",
+    showPayments: true,
   },
   {
     id: "checkout",
@@ -116,7 +151,42 @@ export default function BentoGrid() {
                 </p>
               ) : null}
 
-              <h3 className={`${tile.stat ? "mt-auto pt-8" : "mt-10"} font-display text-lg font-semibold tracking-[-.03em] text-[#172039]`}>
+              {/* Accepted payment marks. Only on the hero tile, which is the one
+                  with room for them and the one whose claim is "unlocked on
+                  payment" - so the marks are the evidence for it rather than
+                  decoration. The list is a real <ul> so screen readers get the
+                  same set of names a sighted visitor reads off the chips. */}
+              {tile.showPayments ? (
+                <ul className="mt-7 grid grid-cols-4 gap-2" aria-label="Accepted payment methods">
+                  {PAYMENT_METHODS.map(method => (
+                    <li
+                      key={method.label}
+                      className="flex h-11 items-center justify-center rounded-lg border border-white/70 bg-white/65 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,.9)]"
+                    >
+                      <img
+                        src={method.src}
+                        alt={method.label}
+                        width={56}
+                        height={24}
+                        loading="lazy"
+                        decoding="async"
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+
+              {/*
+                The hero tile spans two grid rows, so it is taller than its own
+                content. That slack used to be taken by `mt-auto` between the
+                payment marks and the heading, which left a hole in the middle of
+                the card and read as a bug. Letting the spare space fall past the
+                heading instead reads as ordinary bottom padding.
+              */}
+              <h3
+                className={`${tile.stat ? "mt-9" : "mt-10"} font-display text-lg font-semibold tracking-[-.03em] text-[#172039]`}
+              >
                 {tile.title}
               </h3>
               <p className="mt-2 text-sm leading-6 text-[#53617d]">{tile.copy}</p>
