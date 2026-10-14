@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Images } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 /**
@@ -121,11 +121,7 @@ export default function ProductShowcase({
             </li>
           ))}
         </ul>
-      ) : (
-        <p className="mt-3 flex items-center gap-1.5 text-xs text-[#71809f]">
-          <Images size={13} /> Add showcase images in the admin console to show more angles here.
-        </p>
-      )}
+    ) : null}
     </div>
   );
 }

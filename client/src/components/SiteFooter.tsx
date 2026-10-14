@@ -1,16 +1,24 @@
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Lock, Store } from "lucide-react";
 import { Link } from "wouter";
 import DevMarketIcon from "@/assets/dev-market-icon.png";
 
 /**
  * The site footer, shared by every route.
  *
- * The layout follows the grid-container pattern: a short statement column on the
- * left, then nav columns set out on a 12-column grid, then an oversized wordmark
- * that runs off both edges of the content column and closes the page. The word
- * is decorative — the accessible name of the footer comes from the logo link, so
- * the big text is hidden from assistive technology rather than read out as a
- * second, redundant "DevMarket".
+ * Two variants, because the marketing site and the operator console want
+ * genuinely different things at the bottom of the screen:
+ *
+ *   full     - storefront and profile pages. Statement column, four nav columns
+ *              and an oversized wordmark. This is the brand surface.
+ *   compact  - the admin console. A slim bar with only what an operator needs
+ *              to get somewhere else. The marketing footer was unusable there:
+ *              it is ~1000px tall on a 900px viewport, carries eleven
+ *              marketing links and a 224px wordmark, and it was rendering as a
+ *              third flex column beside the admin rail because it sat inside the
+ *              `lg:flex-row` container. A console needs a way out, not a
+ *              storefront.
+ *
+ * Every page uses `full` unless it says otherwise, so nothing else changes.
  */
 
 const primaryLinks = [
@@ -33,7 +41,64 @@ const accountLinks = [
   ["Developer profile", "/developer"],
 ] as const;
 
-export default function SiteFooter() {
+export default function SiteFooter({
+  variant = "full",
+  operatorLabel,
+  onLock,
+}: {
+  variant?: "full" | "compact";
+  /** Only used by the compact variant. */
+  operatorLabel?: string;
+  onLock?: () => void;
+} = {}) {
+  if (variant === "compact") {
+    return (
+      <footer className="admin-page relative z-10 border-t border-[#d7e8eb] bg-[#eef8fa]">
+        <div className="flex flex-col gap-4 px-5 py-5 sm:flex-row sm:items-center sm:justify-between lg:px-10">
+          <div className="flex items-center gap-3">
+            <img src={DevMarketIcon} alt="" className="h-8 w-8 shrink-0 rounded-lg object-contain" />
+            <div className="min-w-0">
+              <p className="font-display text-sm font-bold tracking-[-.04em] text-[#172039]">DevMarket admin</p>
+              {operatorLabel ? (
+                <p className="truncate font-mono text-[10px] uppercase tracking-[.14em] text-[#71809f]">{operatorLabel}</p>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Wraps rather than overflowing, so the bar stays one tidy line on a
+              phone and splits into two on a very narrow screen rather than
+              clipping. */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <Link
+              href="/"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[#d7e8eb] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#53617d] transition hover:border-[#13b8b0] hover:text-[#0b7c77]"
+            >
+              <Store size={13} aria-hidden="true" />
+              View store
+            </Link>
+            <a
+              href="mailto:nitinxengg@gmail.com"
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-[#d7e8eb] bg-white px-3.5 py-1.5 text-xs font-semibold text-[#53617d] transition hover:border-[#13b8b0] hover:text-[#0b7c77]"
+            >
+              Support
+              <ArrowUpRight size={13} aria-hidden="true" />
+            </a>
+            {onLock ? (
+              <button
+                type="button"
+                onClick={onLock}
+                className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#172039] px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[#13b8b0]"
+              >
+                <Lock size={13} aria-hidden="true" />
+                Lock console
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </footer>
+    );
+  }
+
   return (
     <footer className="site-footer relative z-10 overflow-hidden border-t border-[#d7e8eb] bg-[#eef8fa]">
       <div className="mx-auto max-w-[1280px] px-5 pb-8 pt-14 lg:px-8 lg:pt-20">
@@ -126,7 +191,7 @@ export default function SiteFooter() {
         side reads as a layout accident, while a centred one closes the page the
         way a masthead does. The size is capped so "DevMarket" stays inside the
         content column at every width - at 19vw it ran wider than the viewport
-        and clipped asymmetrically.
+        and clipped asymmetrically on one side.
       */}
       <div aria-hidden="true" className="relative select-none overflow-hidden">
         <p className="mx-auto max-w-[1280px] px-5 text-center lg:px-8">

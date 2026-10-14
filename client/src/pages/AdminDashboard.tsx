@@ -345,8 +345,16 @@ export default function AdminDashboard() {
           {tab === "ads" && <AdsManager />}
           {tab === "settings" && <SettingsPanel />}
         </main>
-        <SiteFooter />
       </div>
+
+      {/* Outside the lg:flex-row container on purpose. As a child of it the
+          footer became a third flex column competing with the rail and main,
+          which is what pushed it over the page content on desktop. */}
+      <SiteFooter
+        variant="compact"
+        operatorLabel={adminUser?.email ?? adminUser?.name ?? "Operator"}
+        onLock={lockConsole}
+      />
     </div>
   );
 }
