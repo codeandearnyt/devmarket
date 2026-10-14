@@ -10,11 +10,11 @@ export default function Services() {
       <div className="mx-auto max-w-[1280px] px-5 lg:px-8">
         <SectionTitle
           eyebrow="How we can work together"
-          title="Four kinds of help."
+          title="Fourteen kinds of help."
           lede="Small, well-scoped builds where I can finish the whole thing and hand it over properly."
         />
 
-        <StaggerGroup className="mt-12 grid gap-4 md:grid-cols-2">
+        <StaggerGroup className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {SERVICES.map(service => {
             const Icon = service.icon;
             return (

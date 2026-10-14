@@ -32,11 +32,17 @@ import {
   Fingerprint,
   Gauge,
   GitBranch,
+  HeartPulse,
   Layers,
   Lightbulb,
   MonitorSmartphone,
   PenTool,
+  PencilRuler,
+  Rocket,
+  Server,
   ShieldCheck,
+  ShoppingBag,
+  TerminalSquare,
   TestTube2,
   Workflow,
   Zap,
@@ -54,7 +60,10 @@ export const HERO = {
   primaryCta: { label: "Explore capabilities", href: "#work" },
   secondaryCta: { label: "Read the story", href: "#story" },
   portrait: {
-    src: "/assets/DEVELOPER.jpg",
+    // The source file is a WebP payload. It shipped for a while under a .jpg
+    // name, which made the server answer `Content-Type: image/jpeg` for WebP
+    // bytes — browsers refuse to decode that, so the portrait rendered at 0×0.
+    src: "/assets/DEVELOPER.webp",
     alt: "Portrait of Nitin Sharma",
     badge: "Builder in progress",
     tagline: "Learning. Building. Sharing.",
@@ -104,27 +113,34 @@ export const STORY = {
 /* Tech stack marquee                                                         */
 /* -------------------------------------------------------------------------- */
 
-export const TECH_STACK: string[] = [
-  "React",
-  "TypeScript",
-  "Node.js",
-  "Next.js",
-  "Tailwind CSS",
-  "PostgreSQL",
-  "Drizzle ORM",
-  "tRPC",
-  "Python",
-  "Firebase",
-  "REST APIs",
-  "Razorpay",
-  "n8n",
-  "Docker",
-  "Git",
-  "Vite",
-  "Figma",
-  "Playwright",
-  "LLM APIs",
-  "Accessibility",
+export type StackTool = { name: string; /** Simple Icons slug; the SVG lives in /public/logos. */ slug: string };
+
+/** Each `slug` resolves to client/public/logos/<slug>.svg. */
+export const TECH_STACK: StackTool[] = [
+  { name: "React", slug: "react" },
+  { name: "TypeScript", slug: "typescript" },
+  { name: "JavaScript", slug: "javascript" },
+  { name: "Node.js", slug: "nodedotjs" },
+  { name: "Next.js", slug: "nextdotjs" },
+  { name: "Tailwind CSS", slug: "tailwindcss" },
+  { name: "PostgreSQL", slug: "postgresql" },
+  { name: "Drizzle ORM", slug: "drizzle" },
+  { name: "tRPC", slug: "trpc" },
+  { name: "Express", slug: "express" },
+  { name: "MongoDB", slug: "mongodb" },
+  { name: "Redis", slug: "redis" },
+  { name: "Python", slug: "python" },
+  { name: "Firebase", slug: "firebase" },
+  { name: "Docker", slug: "docker" },
+  { name: "Git", slug: "git" },
+  { name: "GitHub", slug: "github" },
+  { name: "Vite", slug: "vite" },
+  { name: "Netlify", slug: "netlify" },
+  { name: "Vercel", slug: "vercel" },
+  { name: "Cloudflare", slug: "cloudflare" },
+  { name: "Figma", slug: "figma" },
+  { name: "Razorpay", slug: "razorpay" },
+  { name: "n8n", slug: "n8n" },
 ];
 
 /* -------------------------------------------------------------------------- */
@@ -312,10 +328,10 @@ export const SKILL_STAGE_STYLES: Record<Skill["stage"], string> = {
 };
 
 /* -------------------------------------------------------------------------- */
-/* Portfolio                                                                  */
+/* Portfolio: real, shipped projects                                          */
 /* -------------------------------------------------------------------------- */
 
-export type ProjectKind = "AI" | "WEB" | "AUTO";
+export type ProjectKind = "PLATFORM" | "AI" | "WEB" | "APP";
 
 export type Project = {
   id: string;
@@ -323,64 +339,122 @@ export type Project = {
   title: string;
   copy: string;
   stack: string[];
+  /** One honest line about what the project is, not a fabricated metric. */
   outcome: string;
+  /** Live address - every project listed here is reachable. */
+  url: string;
+  /** Screenshot in /public/projects, used as the card cover. */
+  cover: string;
 };
 
 export const PORTFOLIO_FILTERS: { id: ProjectKind | "ALL"; label: string }[] = [
   { id: "ALL", label: "All work" },
-  { id: "AI", label: "AI systems" },
-  { id: "WEB", label: "Web builds" },
-  { id: "AUTO", label: "Automation" },
+  { id: "PLATFORM", label: "Platforms" },
+  { id: "AI", label: "AI" },
+  { id: "WEB", label: "Websites" },
+  { id: "APP", label: "Apps" },
 ];
 
 export const PROJECTS: Project[] = [
   {
+    id: "coremmc",
+    kind: "PLATFORM",
+    title: "CoreMMC",
+    copy: "A hosting platform covering Minecraft servers, VPS, domain registration, web hosting and Discord bots on India-based infrastructure.",
+    stack: ["Hosting", "VPS", "Domains", "Discord bots"],
+    outcome: "One dashboard for every product line, with live server status.",
+    url: "https://coremmc.cloud",
+    cover: "/projects/coremmc.jpg",
+  },
+  {
     id: "devmarket",
-    kind: "WEB",
+    kind: "PLATFORM",
     title: "DevMarket",
-    copy: "A full-stack digital marketplace with secure checkout, protected downloads, realtime updates and an editorial layer.",
-    stack: ["React", "tRPC", "PostgreSQL"],
-    outcome: "From idea to a shippable product system.",
+    copy: "A marketplace for production-ready source code, AI prompt systems and complete digital projects, with checkout and protected downloads.",
+    stack: ["React", "tRPC", "PostgreSQL", "Razorpay"],
+    outcome: "From an empty repository to a marketplace taking real orders.",
+    url: "https://devmarket-azure.vercel.app",
+    cover: "/projects/devmarket.jpg",
   },
   {
-    id: "checkout-kit",
+    id: "coremmc-ai",
+    kind: "AI",
+    title: "CoreMMC AI",
+    copy: "A clean, accessible AI surface built to be useful rather than impressive, with plain language instead of jargon.",
+    stack: ["React", "LLM APIs", "Accessibility"],
+    outcome: "An AI experience that explains itself instead of hiding behind prompts.",
+    url: "https://ai.coremmc.cloud",
+    cover: "/projects/coremmc-ai.jpg",
+  },
+  {
+    id: "flowpilot",
+    kind: "AI",
+    title: "FlowPilot",
+    copy: "An AI copilot for drafting, brainstorming and analysis, built for a web-app hackathon. Handles files and images.",
+    stack: ["React", "Hackathon", "File handling"],
+    outcome: "Shipped to a public URL with no API key needed to try it.",
+    url: "https://webapp-hackathon.vercel.app",
+    cover: "/projects/webapp-hackathon.jpg",
+  },
+  {
+    id: "ashish-manocha",
     kind: "WEB",
-    title: "Checkout & QR kit",
-    copy: "A payment flow that supports both a card gateway and a manual QR confirmation, so buyers who cannot use one still have a path.",
-    stack: ["Razorpay", "Payments", "Webhooks"],
-    outcome: "Fewer dead ends at the last step.",
+    title: "Ashish Manocha Studio",
+    copy: "A portfolio site for a creative digital studio: bold work presented without the page becoming slow or loud.",
+    stack: ["React", "Animation", "Responsive"],
+    outcome: "A studio site that still reads well on a phone.",
+    url: "https://ashish-manocha.vercel.app",
+    cover: "/projects/ashish-manocha.jpg",
   },
   {
-    id: "ai-workflows",
-    kind: "AI",
-    title: "AI Workflow Studio",
-    copy: "A concept for turning repetitive research and content tasks into transparent, reviewable AI workflows.",
-    stack: ["LLM workflows", "Automation", "Human review"],
-    outcome: "Less repetition. More useful decisions.",
+    id: "shah-hospitals",
+    kind: "WEB",
+    title: "Shah Hospitals",
+    copy: "A site for a hospital with more than forty years of practice, covering departments and appointment booking.",
+    stack: ["React", "Booking flow", "SEO"],
+    outcome: "Department pages and a booking path that works on mobile.",
+    url: "https://shah-hospitals.vercel.app",
+    cover: "/projects/shah-hospitals.jpg",
   },
   {
-    id: "prompt-lab",
-    kind: "AI",
-    title: "Prompt Lab",
-    copy: "An evaluation harness that runs a prompt against a fixed set of cases and shows exactly which ones regress.",
-    stack: ["Evals", "Datasets", "Regression"],
-    outcome: "Prompt changes you can actually verify.",
+    id: "saraswati-eyecare",
+    kind: "WEB",
+    title: "Saraswati Eye Care",
+    copy: "A site for an NABH-accredited eye hospital in Jind, covering specialists, technology and cashless treatment.",
+    stack: ["React", "Medical content", "Call to action"],
+    outcome: "Accreditation and treatment information surfaced above the fold.",
+    url: "https://saraswati-eyecare.vercel.app",
+    cover: "/projects/saraswati-eyecare.jpg",
   },
   {
-    id: "responsible-ai",
-    kind: "AI",
-    title: "Responsible AI Toolkit",
-    copy: "A learning project exploring practical guardrails, clear explanations, and user control around AI-assisted experiences.",
-    stack: ["Prompt design", "UX writing", "Safety"],
-    outcome: "AI that explains itself and respects the user.",
+    id: "kamal-healthcare",
+    kind: "WEB",
+    title: "Kamal Healthcare",
+    copy: "A nursing home and critical care site: contact details, directions, facility hours and appointment requests.",
+    stack: ["React", "Local search", "Forms"],
+    outcome: "The details a patient actually needs, correct and findable.",
+    url: "https://kamal-healthcare.vercel.app",
+    cover: "/projects/kamal-healthcare.jpg",
   },
   {
-    id: "automation-kit",
-    kind: "AUTO",
-    title: "Repetition Kit",
-    copy: "Ready-made pipelines that move data between forms, sheets and APIs without anyone copying and pasting.",
-    stack: ["n8n", "Webhooks", "Queues"],
-    outcome: "A manual step removed for good.",
+    id: "pizza-star-web",
+    kind: "APP",
+    title: "Pizza Star",
+    copy: "The web home for a wood-fired Indian fusion pizza brand: recipes, a blog and the path to the mobile app.",
+    stack: ["React", "Blog", "App install"],
+    outcome: "Content and app download on one site, built for search traffic.",
+    url: "https://pizzastarweb.netlify.app",
+    cover: "/projects/pizzastarweb.jpg",
+  },
+  {
+    id: "star-pizza-app",
+    kind: "APP",
+    title: "Star Pizza App",
+    copy: "A mobile-first ordering experience for fresh pizza, focused on getting from open to placed order in a few taps.",
+    stack: ["React", "Ordering flow", "Mobile first"],
+    outcome: "An ordering flow a customer can finish one-handed.",
+    url: "https://pizzastarapp.netlify.app",
+    cover: "/projects/pizzastarapp.jpg",
   },
 ];
 
@@ -439,7 +513,7 @@ export const SERVICES: { id: string; title: string; copy: string; points: string
   {
     id: "web",
     title: "Web builds",
-    copy: "A working site or web app, taken from an empty folder to something you can actually open on a phone.",
+    copy: "A working site or web app, taken from an empty folder to something you can open on a phone.",
     points: ["Landing pages and dashboards", "Responsive from the first commit", "Setup instructions included"],
     icon: Layers,
   },
@@ -463,6 +537,76 @@ export const SERVICES: { id: string; title: string; copy: string; points: string
     copy: "A second pair of eyes on a codebase, explained in plain language rather than a wall of lint output.",
     points: ["Correctness and edge cases", "Performance and bundle size", "Plain-language explanation"],
     icon: TestTube2,
+  },
+  {
+    id: "hosting",
+    title: "Hosting & infrastructure",
+    copy: "Servers, domains and deployment configured so the site stays reachable and someone can restart it.",
+    points: ["VPS and server setup", "DNS, domains and SSL", "Deploy and rollback pipeline"],
+    icon: Server,
+  },
+  {
+    id: "apis",
+    title: "APIs & backends",
+    copy: "A typed, validated backend with real endpoints that fail loudly instead of quietly returning nothing.",
+    points: ["REST or tRPC endpoints", "Input validation at the boundary", "Auth and role checks"],
+    icon: TerminalSquare,
+  },
+  {
+    id: "databases",
+    title: "Databases & schema",
+    copy: "Schema design and migrations that can be re-run safely, and queries that survive real row counts.",
+    points: ["Schema and relationship design", "Idempotent migrations", "Query and index fixes"],
+    icon: Database,
+  },
+  {
+    id: "landing",
+    title: "Landing pages",
+    copy: "A page that says what the thing is, loads fast, and works on the phone most visitors actually use.",
+    points: ["Copy and structure", "Fast first load", "Conversion-focused calls to action"],
+    icon: Rocket,
+  },
+  {
+    id: "healthcare",
+    title: "Healthcare websites",
+    copy: "Sites for clinics and hospitals: departments, doctors, timings and appointments, correct and easy to find.",
+    points: ["Departments and doctor profiles", "Appointment and enquiry forms", "Accreditation and facilities"],
+    icon: HeartPulse,
+  },
+  {
+    id: "ecommerce",
+    title: "Ordering & checkout",
+    copy: "A cart and checkout someone can finish on a phone, including the payment options that actually work locally.",
+    points: ["Cart and checkout flow", "Card gateway and manual QR", "Order status for the customer"],
+    icon: ShoppingBag,
+  },
+  {
+    id: "design-systems",
+    title: "UI & design systems",
+    copy: "Tokens, spacing scales and components that keep a page coherent after the twentieth small change.",
+    points: ["Colour and type tokens", "Reusable component set", "Figma-to-code handoff"],
+    icon: PencilRuler,
+  },
+  {
+    id: "performance",
+    title: "Performance work",
+    copy: "Measuring where the time actually goes, then cutting the bundle, the requests and the render work.",
+    points: ["Bundle splitting and lazy routes", "Image and font budgets", "Measured before and after"],
+    icon: Gauge,
+  },
+  {
+    id: "accessibility",
+    title: "Accessibility audits",
+    copy: "Keyboard paths, contrast and semantics checked properly, with a plain list of what to fix and why.",
+    points: ["Keyboard and focus audit", "Contrast in both themes", "Fixes applied, not just listed"],
+    icon: Accessibility,
+  },
+  {
+    id: "docs",
+    title: "Docs & handover",
+    copy: "The README, setup steps and environment list that let someone else run the project without calling me.",
+    points: ["README and setup guide", "Environment variable list", "Architecture notes"],
+    icon: FileText,
   },
 ];
 

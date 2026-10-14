@@ -91,7 +91,7 @@ function googlePhotoUrl(user: ReturnType<typeof useAuth>["user"], livePhoto: str
  */
 function storedPhotoUrl(user: ReturnType<typeof useAuth>["user"]): string | null {
   const url = user?.photoUrl?.trim();
-  if (!url || url.includes("dev-market-icon") || url.includes("DEVELOPER.jpg")) return null;
+  if (!url || url.includes("dev-market-icon") || url.includes("DEVELOPER.")) return null;
   if (isGooglePhotoUrl(url)) return null;
   return url;
 }
@@ -208,8 +208,8 @@ export default function ProfilePage() {
    */
   const displayPhoto = (() => {
     const source = editing ? draft.avatarSource : storedPhotoUrl(user) ? "manual" : hasGooglePhoto ? "google" : "manual";
-    if (source === "google") return googlePhoto || "/assets/DEVELOPER.jpg";
-    return (editing ? draft.photoUrl : storedPhotoUrl(user)) || googlePhoto || "/assets/DEVELOPER.jpg";
+    if (source === "google") return googlePhoto || "/assets/DEVELOPER.webp";
+    return (editing ? draft.photoUrl : storedPhotoUrl(user)) || googlePhoto || "/assets/DEVELOPER.webp";
   })();
 
   const displayName = useMemo(() => {

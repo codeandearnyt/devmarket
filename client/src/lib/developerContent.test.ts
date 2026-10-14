@@ -5,6 +5,7 @@ import {
   PORTFOLIO_FILTERS,
   PRINCIPLES,
   PROJECTS,
+  SERVICES,
   SKILL_CLUSTERS,
   TECH_STACK,
   filterProjects,
@@ -39,6 +40,18 @@ describe("developer content", () => {
       filterProjects(PROJECTS, "WEB");
       expect(PROJECTS).toEqual(snapshot);
     });
+  });
+
+  it("gives every project a unique id, and the expected number of them", () => {
+    expect(PROJECTS).toHaveLength(10);
+  });
+
+  it("gives every project a live https url and a cover image", () => {
+    for (const project of PROJECTS) {
+      expect(project.url).toMatch(/^https:\/\//);
+      expect(project.cover).toMatch(/^\/projects\/[a-z0-9-]+\.jpg$/);
+      expect(project.outcome.length).toBeGreaterThan(15);
+    }
   });
 
   it("gives every project a unique id", () => {
@@ -79,9 +92,24 @@ describe("developer content", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("has a non-empty tech stack with no duplicates", () => {
+  it("has a non-empty tech stack with unique slugs", () => {
     expect(TECH_STACK.length).toBeGreaterThan(10);
-    expect(new Set(TECH_STACK).size).toBe(TECH_STACK.length);
+    const slugs = TECH_STACK.map(tool => tool.slug);
+    expect(new Set(slugs).size).toBe(slugs.length);
+    expect(TECH_STACK.every(tool => tool.name.length > 0 && tool.slug.length > 0)).toBe(true);
+  });
+
+  it("offers exactly fourteen services", () => {
+    expect(SERVICES).toHaveLength(14);
+  });
+
+  it("gives every service a unique id, three points and an icon", () => {
+    const ids = SERVICES.map(service => service.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const service of SERVICES) {
+      expect(service.points).toHaveLength(3);
+      expect(service.icon).toBeTruthy();
+    }
   });
 
   it("orders the journey from earliest to latest", () => {

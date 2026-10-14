@@ -1,22 +1,36 @@
 import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowUpRight, Sparkles } from "lucide-react";
+import { ArrowUpRight, ExternalLink, Sparkles } from "lucide-react";
 import Reveal from "@/components/developer/Reveal";
 import SectionTitle from "@/components/developer/SectionTitle";
-import { PROJECTS, filterProjects, type ProjectKind } from "@/lib/developerContent";
+import { PORTFOLIO_FILTERS, PROJECTS, filterProjects, type ProjectKind } from "@/lib/developerContent";
 
 type Filter = ProjectKind | "ALL";
+
+const KIND_STYLES: Record<ProjectKind, string> = {
+  PLATFORM: "bg-[#172039] text-white",
+  AI: "bg-[#7658f5] text-white",
+  WEB: "bg-[#13b8b0] text-white",
+  APP: "bg-[#c7f76d] text-[#172039]",
+};
 
 /**
  * Selected work.
  *
- * Filtering animates with `AnimatePresence` + `layout` so cards slide into the
- * grid instead of snapping. `layout` only wraps the list that actually changes,
- * never the whole page — Motion has to measure the elements it animates, and
- * measuring everything on a page this long is measurable work for no visual gain.
+ * Every project here is real and every `url` is live, so the card carries the
+ * domain as a link and the screenshot as the cover — clicking anywhere useful
+ * on the card takes you to the actual thing rather than a case-study page that
+ * does not exist yet.
  *
- * Hover/focus on a card drives the dark detail panel beside it. Focus is wired
- * up as well as hover so the panel is reachable by keyboard.
+ * Filtering animates opacity and scale only. There is deliberately no `layout`
+ * prop and no `mode="popLayout"` on AnimatePresence: `popLayout` sets
+ * `position: absolute` on exiting children and removes them only once their exit
+ * animation settles, and combined with `layout` on both the list and the items
+ * that settle never happens — the filtered-out cards stay in the DOM at full
+ * opacity, stacked over the card that should be visible.
+ *
+ * Hover/focus drives the dark detail panel beside the grid. Focus is wired up as
+ * well as hover so it is reachable by keyboard.
  */
 export default function Portfolio() {
   const reduceMotion = useReducedMotion();
@@ -24,8 +38,8 @@ export default function Portfolio() {
   const [activeId, setActiveId] = useState(PROJECTS[0].id);
 
   const visible = filterProjects(PROJECTS, filter);
-  // Keep the detail panel pointing at something that is still on screen when
-  // the active project gets filtered out.
+  // Keep the detail panel pointing at something still on screen when the active
+  // project gets filtered out.
   const active = visible.find(project => project.id === activeId) ?? visible[0] ?? PROJECTS[0];
 
   return (
@@ -35,7 +49,7 @@ export default function Portfolio() {
           <SectionTitle
             eyebrow="Selected experiments"
             title="A portfolio in motion."
-            lede="Hover or focus a project to read the thinking behind it, or filter by the kind of problem I’m exploring."
+            lede="Ten projects that are live right now. Hover or focus one to read the detail, or filter by type — every card links to the real site."
           />
 
           <Reveal delay={0.1}>
@@ -44,12 +58,7 @@ export default function Portfolio() {
               aria-label="Filter projects by type"
               className="flex flex-wrap gap-1 rounded-full border border-[#b9d6db] bg-[#f8ffff] p-1"
             >
-              {[
-                { id: "ALL" as Filter, label: "All work" },
-                { id: "AI" as Filter, label: "AI systems" },
-                { id: "WEB" as Filter, label: "Web builds" },
-                { id: "AUTO" as Filter, label: "Automation" },
-              ].map(option => (
+              {PORTFOLIO_FILTERS.map(option => (
                 <button
                   key={option.id}
                   type="button"
@@ -67,16 +76,6 @@ export default function Portfolio() {
         </div>
 
         <div className="mt-10 grid gap-5 lg:grid-cols-[1fr_.75fr]">
-          {/*
-            No `layout` prop here, and no `mode="popLayout"` on AnimatePresence.
-
-            `popLayout` sets `position: absolute` on exiting children and removes
-            them only once their exit animation settles. Combined with `layout`
-            on both the list and the items that settle never happens: the
-            filtered-out cards stay in the DOM at full opacity, stacked on top of
-            the one card that should be visible. Filtering animates opacity and
-            scale only, which cannot get stuck.
-          */}
           <ul className="grid content-start gap-4 sm:grid-cols-2">
             <AnimatePresence initial={false}>
               {visible.map(project => (
@@ -87,37 +86,56 @@ export default function Portfolio() {
                   exit={reduceMotion ? undefined : { opacity: 0, scale: 0.96, transition: { duration: 0.16 } }}
                   transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
                 >
-                  <button
-                    type="button"
+                  {/* The whole card is a link: the live project is the most
+                      useful thing a reader can do here. */}
+                  <a
+                    href={project.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     onMouseEnter={() => setActiveId(project.id)}
                     onFocus={() => setActiveId(project.id)}
                     onClick={() => setActiveId(project.id)}
-                    aria-pressed={active.id === project.id}
-                    className={`group h-full w-full rounded-[1.5rem] border p-6 text-left transition duration-200 ease-[cubic-bezier(.23,1,.32,1)] hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(23,32,57,.12)] ${
-                      active.id === project.id
-                        ? "border-[#13b8b0] bg-[#f8ffff]"
-                        : "border-[#d7e8eb] bg-[#f8ffff]/60 hover:border-[#13b8b0]"
+                    aria-label={`${project.title} — opens in a new tab`}
+                    className={`group block h-full overflow-hidden rounded-[1.5rem] border bg-[#f8ffff] transition duration-200 ease-[cubic-bezier(.23,1,.32,1)] hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(23,32,57,.14)] ${
+                      active.id === project.id ? "border-[#13b8b0]" : "border-[#d7e8eb] hover:border-[#13b8b0]"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#d9f8f6] font-mono text-xs font-bold text-[#0b7c77]">
-                        {String(PROJECTS.findIndex(item => item.id === project.id) + 1).padStart(2, "0")}
-                      </span>
-                      <span className="shrink-0 rounded-full bg-[#c7f76d] px-2.5 py-1 font-mono text-[9px] uppercase tracking-[.12em] text-[#172039]">
+                    {/* Cover screenshot. Explicit 16:10 box + object-cover so the
+                        grid cannot shift when the JPEG decodes. */}
+                    <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#e9f7f6]">
+                      <img
+                        src={project.cover}
+                        alt={`Screenshot of ${project.title}`}
+                        width={1280}
+                        height={800}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-full w-full object-cover transition-transform duration-500 ease-[cubic-bezier(.23,1,.32,1)] group-hover:scale-[1.04]"
+                      />
+                      <span
+                        className={`absolute left-3 top-3 rounded-full px-2.5 py-1 font-mono text-[9px] uppercase tracking-[.12em] ${KIND_STYLES[project.kind]}`}
+                      >
                         {project.kind}
                       </span>
                     </div>
 
-                    <h3 className="mt-10 font-display text-xl font-semibold tracking-[-.04em] text-[#172039] transition-colors duration-200 group-hover:text-[#0b7c77]">
-                      {project.title}
-                    </h3>
-                    <p className="mt-3 text-sm leading-6 text-[#53617d]">{project.copy}</p>
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="font-display text-lg font-semibold tracking-[-.04em] text-[#172039] transition-colors duration-200 group-hover:text-[#0b7c77]">
+                          {project.title}
+                        </h3>
+                        <ExternalLink
+                          size={16}
+                          aria-hidden="true"
+                          className="mt-0.5 shrink-0 text-[#71809f] transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[#0b7c77]"
+                        />
+                      </div>
 
-                    <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#172039]">
-                      Explore thinking
-                      <ArrowUpRight size={15} className="transition-transform duration-200 group-hover:translate-x-1 group-hover:-translate-y-1" aria-hidden="true" />
-                    </span>
-                  </button>
+                      <p className="mt-2 text-sm leading-6 text-[#53617d]">{project.copy}</p>
+
+                      <p className="mt-3 truncate font-mono text-[11px] text-[#71809f]">{project.url.replace(/^https?:\/\//, "")}</p>
+                    </div>
+                  </a>
                 </motion.li>
               ))}
             </AnimatePresence>
@@ -129,15 +147,26 @@ export default function Portfolio() {
             initial={reduceMotion ? false : { opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="relative h-fit overflow-hidden rounded-[1.75rem] bg-[#172039] p-7 text-white md:p-9"
+            className="relative h-fit overflow-hidden rounded-[1.75rem] bg-[#172039] text-white"
           >
-            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#13b8b0]/25" />
-            <div className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-[#7658f5]/20" />
+            <div className="relative aspect-[16/10] w-full overflow-hidden bg-[#0f1728]">
+              <img
+                src={active.cover}
+                alt={`Screenshot of ${active.title}`}
+                width={1280}
+                height={800}
+                loading="lazy"
+                decoding="async"
+                className="h-full w-full object-cover opacity-90"
+              />
+            </div>
 
-            <div aria-live="polite" className="relative flex h-full flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] uppercase tracking-[.18em] text-[#c7f76d]">Now exploring</span>
+            <div aria-live="polite" className="relative p-7 md:p-9">
+              <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-[#13b8b0]/25" />
+
+              <div className="relative">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-mono text-[10px] uppercase tracking-[.18em] text-[#c7f76d]">Now looking at</span>
                   <motion.span
                     aria-hidden="true"
                     animate={reduceMotion ? {} : { rotate: [0, 14, 0] }}
@@ -147,20 +176,32 @@ export default function Portfolio() {
                     <Sparkles size={20} />
                   </motion.span>
                 </div>
-                <h3 className="mt-10 font-display text-4xl font-semibold leading-[.9] tracking-[-.07em]">{active.title}</h3>
-                <p className="mt-5 text-base leading-8 text-white/70">{active.copy}</p>
-              </div>
 
-              <div className="mt-10">
-                <p className="font-mono text-[10px] uppercase tracking-[.16em] text-white/45">Project signal</p>
-                <p className="mt-2 font-display text-2xl font-semibold text-[#13b8b0]">{active.outcome}</p>
-                <ul className="mt-5 flex flex-wrap gap-2">
+                <h3 className="mt-6 font-display text-3xl font-semibold leading-[.95] tracking-[-.05em]">{active.title}</h3>
+                <p className="mt-4 text-base leading-7 text-white/70">{active.copy}</p>
+
+                <div className="mt-8">
+                  <p className="font-mono text-[10px] uppercase tracking-[.16em] text-white/45">What it is</p>
+                  <p className="mt-2 font-display text-xl font-semibold text-[#13b8b0]">{active.outcome}</p>
+                </div>
+
+                <ul className="mt-6 flex flex-wrap gap-2">
                   {active.stack.map(item => (
                     <li key={item} className="rounded-full border border-white/20 px-3 py-1.5 text-xs text-white/75">
                       {item}
                     </li>
                   ))}
                 </ul>
+
+                <a
+                  href={active.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn mt-8 inline-flex min-h-12 items-center rounded-full bg-[#13b8b0] px-6 py-3 text-sm font-semibold text-white hover:bg-[#0b7c77]"
+                >
+                  Visit {active.title}
+                  <ArrowUpRight className="ml-2" size={16} aria-hidden="true" />
+                </a>
               </div>
             </div>
           </motion.div>
