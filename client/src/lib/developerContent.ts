@@ -60,11 +60,14 @@ export const HERO = {
   primaryCta: { label: "Explore capabilities", href: "#work" },
   secondaryCta: { label: "Read the story", href: "#story" },
   portrait: {
-    // Served from /public/assets. The file really is a JPEG: an earlier copy
-    // shipped under a .jpg name but carried WebP bytes, so the server answered
-    // `Content-Type: image/jpeg` for a payload the browser refused to decode and
-    // the portrait rendered at 0x0.
-    src: "/assets/DEVELOPER.jpg",
+    // Served from /public/assets as developer-portrait.jpg.
+    //
+    // The filename is deliberately not "DEVELOPER.jpg": that exact URL shipped
+    // once with WebP bytes behind a .jpg name, and Vercel serves /assets with
+    // max-age=31536064, immutable. Every browser that hit it during the broken
+    // window is now holding a cached decode failure for a year, and a new
+    // filename is the only way to make those caches miss.
+    src: "/assets/developer-portrait.jpg",
     alt: "Portrait of Nitin Sharma",
     badge: "Builder in progress",
     tagline: "Learning. Building. Sharing.",
