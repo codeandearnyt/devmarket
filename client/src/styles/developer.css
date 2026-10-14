@@ -1,0 +1,59 @@
+/* ============================================================================
+   Developer profile — page-scoped styles
+   ----------------------------------------------------------------------------
+   Imported only by pages/Developer.tsx, so none of this is downloaded by the
+   rest of the marketplace. The site has no global focus-visible treatment, and
+   this page is fully keyboard-operable (portfolio filters, FAQ disclosure, CTA
+   links), so it supplies its own visible ring rather than leaving keyboard
+   users on the 1px browser default.
+   ========================================================================== */
+
+.dev-profile :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid #0b7c77;
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
+/* The FAQ and hero CTAs sit on the page background rather than on a card, so a
+   light halo keeps the ring legible over the pale teal. */
+.dev-profile :focus-visible {
+  box-shadow: 0 0 0 6px rgba(19, 184, 176, 0.22);
+}
+
+/* Skip link — visually parked off-screen until it takes focus. */
+.dev-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 80;
+  border-radius: 0 0 16px 0;
+  background: #172039;
+  padding: 14px 22px;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.dev-skip-link:focus-visible {
+  left: 0;
+  outline-offset: -4px;
+}
+
+/* Anchor targets clear the fixed header when linked to. */
+.dev-profile section[id] {
+  scroll-margin-top: 112px;
+}
+
+/* Reduced motion: strip the looping animations. The marquee and the portrait
+   drift are both handled in markup, so this is the belt-and-braces pass for
+   anything driven purely by CSS. */
+@media (prefers-reduced-motion: reduce) {
+  .dev-profile *,
+  .dev-profile *::before,
+  .dev-profile *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
