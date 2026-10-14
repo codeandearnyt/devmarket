@@ -147,16 +147,21 @@ export const TECH_STACK: StackTool[] = [
 /* Skills — 16, grouped into 4 clusters                                      */
 /* -------------------------------------------------------------------------- */
 
+/** A tech pill. When `slug` is set the pill shows that brand's real mark. */
+export type SkillTag = { label: string; slug?: string };
+
 export type Skill = {
   id: string;
   title: string;
   copy: string;
-  tags: string[];
-  icon: LucideIcon;
+  tags: SkillTag[];
   /**
-   * How honestly framed. Deliberately not a percentage: a number would imply a
-   * measured proficiency claim that is not backed by anything.
+   * Brand mark for the card where one exists. Skills that are a practice rather
+   * than a product (accessibility, taste) have no logo, so they fall back to
+   * `icon` rather than showing a mark for a company that does not own the idea.
    */
+  logo?: string;
+  icon: LucideIcon;
   stage: "Learning" | "Building" | "Shipping";
 };
 
@@ -172,7 +177,12 @@ export const SKILL_CLUSTERS: SkillCluster[] = [
         id: "react",
         title: "React & TypeScript",
         copy: "Component architecture, typed data boundaries, and state that does not fight itself as the product grows.",
-        tags: ["React 19", "TypeScript", "Hooks"],
+        logo: "react",
+        tags: [
+          { label: "React", slug: "react" },
+          { label: "TypeScript", slug: "typescript" },
+          { label: "Hooks" },
+        ],
         icon: Boxes,
         stage: "Shipping",
       },
@@ -180,7 +190,12 @@ export const SKILL_CLUSTERS: SkillCluster[] = [
         id: "responsive",
         title: "Responsive systems",
         copy: "Layouts that hold together from a 320px phone to a wide desktop without a pile of one-off overrides.",
-        tags: ["Grid", "Fluid type", "Container queries"],
+        logo: "tailwindcss",
+        tags: [
+          { label: "Tailwind CSS", slug: "tailwindcss" },
+          { label: "Grid" },
+          { label: "Container queries" },
+        ],
         icon: MonitorSmartphone,
         stage: "Shipping",
       },
@@ -188,15 +203,24 @@ export const SKILL_CLUSTERS: SkillCluster[] = [
         id: "a11y",
         title: "Accessibility",
         copy: "Semantic markup, visible focus, real keyboard paths, and contrast checked in both themes.",
-        tags: ["WCAG AA", "ARIA", "Keyboard"],
+        tags: [
+          { label: "WCAG AA" },
+          { label: "ARIA" },
+          { label: "Keyboard" },
+        ],
         icon: Accessibility,
         stage: "Building",
       },
       {
         id: "motion",
         title: "Motion & interaction",
-        copy: "Animation that explains a state change instead of decorating one — always transform and opacity, always cheap.",
-        tags: ["Framer Motion", "Transitions", "Reduced motion"],
+        copy: "Animation that explains a state change instead of decorating one. Transform and opacity only, always cheap.",
+        logo: "framer",
+        tags: [
+          { label: "Framer Motion", slug: "framer" },
+          { label: "Transitions" },
+          { label: "Reduced motion" },
+        ],
         icon: Zap,
         stage: "Building",
       },
@@ -211,7 +235,12 @@ export const SKILL_CLUSTERS: SkillCluster[] = [
         id: "node",
         title: "Node.js & APIs",
         copy: "Typed request handlers, validation at the boundary, and endpoints that fail loudly instead of quietly.",
-        tags: ["Express", "tRPC", "Zod"],
+        logo: "nodedotjs",
+        tags: [
+          { label: "Node.js", slug: "nodedotjs" },
+          { label: "Express", slug: "express" },
+          { label: "tRPC", slug: "trpc" },
+        ],
         icon: Braces,
         stage: "Shipping",
       },
@@ -219,7 +248,12 @@ export const SKILL_CLUSTERS: SkillCluster[] = [
         id: "sql",
         title: "Databases & SQL",
         copy: "Schema design, migrations that can be re-run safely, and queries that do not fall over as rows grow.",
-        tags: ["PostgreSQL", "Drizzle", "Migrations"],
+        logo: "postgresql",
+        tags: [
+          { label: "PostgreSQL", slug: "postgresql" },
+          { label: "Drizzle", slug: "drizzle" },
+          { label: "Migrations" },
+        ],
         icon: Database,
         stage: "Building",
       },
@@ -227,7 +261,12 @@ export const SKILL_CLUSTERS: SkillCluster[] = [
         id: "auth",
         title: "Auth & payments",
         copy: "Session handling, role checks, and checkout flows including the manual path a bank transfer needs.",
-        tags: ["Firebase Auth", "Razorpay", "Sessions"],
+        logo: "razorpay",
+        tags: [
+          { label: "Razorpay", slug: "razorpay" },
+          { label: "Firebase Auth", slug: "firebase" },
+          { label: "Sessions" },
+        ],
         icon: Fingerprint,
         stage: "Building",
       },
@@ -235,7 +274,12 @@ export const SKILL_CLUSTERS: SkillCluster[] = [
         id: "deploy",
         title: "Deployment & tooling",
         copy: "Build pipelines, environment variables, and rollbacks that do not require archaeology.",
-        tags: ["Vite", "Vercel", "Git"],
+        logo: "vercel",
+        tags: [
+          { label: "Vercel", slug: "vercel" },
+          { label: "Docker", slug: "docker" },
+          { label: "Git", slug: "git" },
+        ],
         icon: GitBranch,
         stage: "Shipping",
       },
@@ -244,13 +288,17 @@ export const SKILL_CLUSTERS: SkillCluster[] = [
   {
     id: "ai",
     title: "AI & automation",
-    blurb: "Models and pipelines used to remove a manual step — never to hide one from the user.",
+    blurb: "Models and pipelines used to remove a manual step, never to hide one from the user.",
     skills: [
       {
         id: "llm-apps",
         title: "LLM applications",
         copy: "Grounding a model in real context, structuring its output, and handling the case where it is simply wrong.",
-        tags: ["Structured output", "Tools", "Retrieval"],
+        tags: [
+          { label: "Structured output" },
+          { label: "Tools" },
+          { label: "Retrieval" },
+        ],
         icon: Brain,
         stage: "Building",
       },
@@ -258,7 +306,11 @@ export const SKILL_CLUSTERS: SkillCluster[] = [
         id: "prompts",
         title: "Prompts & evaluation",
         copy: "Treating a prompt like code: versioned, tested against real cases, and changed only when a case fails.",
-        tags: ["Prompt design", "Evals", "Datasets"],
+        tags: [
+          { label: "Prompt design" },
+          { label: "Evals" },
+          { label: "Datasets" },
+        ],
         icon: TestTube2,
         stage: "Learning",
       },
@@ -266,7 +318,12 @@ export const SKILL_CLUSTERS: SkillCluster[] = [
         id: "automation",
         title: "Workflow automation",
         copy: "Connecting forms, APIs and spreadsheets into a pipeline that runs without anyone watching it.",
-        tags: ["n8n", "Webhooks", "Queues"],
+        logo: "n8n",
+        tags: [
+          { label: "n8n", slug: "n8n" },
+          { label: "Webhooks" },
+          { label: "Queues" },
+        ],
         icon: Workflow,
         stage: "Building",
       },
@@ -274,7 +331,11 @@ export const SKILL_CLUSTERS: SkillCluster[] = [
         id: "ai-safety",
         title: "Responsible AI",
         copy: "Privacy-aware defaults, honest labelling of generated output, and keeping a person in the loop.",
-        tags: ["Guardrails", "Privacy", "Disclosure"],
+        tags: [
+          { label: "Guardrails" },
+          { label: "Privacy" },
+          { label: "Disclosure" },
+        ],
         icon: ShieldCheck,
         stage: "Learning",
       },
@@ -289,7 +350,11 @@ export const SKILL_CLUSTERS: SkillCluster[] = [
         id: "product",
         title: "Product thinking",
         copy: "Working out the actual problem before opening an editor, then cutting everything that does not serve it.",
-        tags: ["Scoping", "Prioritising", "Trade-offs"],
+        tags: [
+          { label: "Scoping" },
+          { label: "Prioritising" },
+          { label: "Trade-offs" },
+        ],
         icon: Lightbulb,
         stage: "Learning",
       },
@@ -297,7 +362,12 @@ export const SKILL_CLUSTERS: SkillCluster[] = [
         id: "design-systems",
         title: "UI & design systems",
         copy: "Tokens, spacing scales and components that keep a page coherent after the twentieth small change.",
-        tags: ["Tokens", "Figma", "Components"],
+        logo: "figma",
+        tags: [
+          { label: "Figma", slug: "figma" },
+          { label: "Tokens" },
+          { label: "Components" },
+        ],
         icon: PenTool,
         stage: "Building",
       },
@@ -305,7 +375,12 @@ export const SKILL_CLUSTERS: SkillCluster[] = [
         id: "performance",
         title: "Performance engineering",
         copy: "Bundle splitting, lazy routes, and measuring the actual time to useful content instead of guessing.",
-        tags: ["Caching", "Lazy loading", "Profiling"],
+        logo: "vite",
+        tags: [
+          { label: "Vite", slug: "vite" },
+          { label: "Lazy loading" },
+          { label: "Profiling" },
+        ],
         icon: Gauge,
         stage: "Shipping",
       },
@@ -313,7 +388,12 @@ export const SKILL_CLUSTERS: SkillCluster[] = [
         id: "writing",
         title: "Technical writing",
         copy: "README files, setup guides and comments that let someone else run the project without calling me.",
-        tags: ["Docs", "Setup guides", "Comments"],
+        logo: "github",
+        tags: [
+          { label: "GitHub", slug: "github" },
+          { label: "Docs" },
+          { label: "Comments" },
+        ],
         icon: FileText,
         stage: "Shipping",
       },
@@ -735,7 +815,7 @@ export const FAQ_ITEMS: { id: string; question: string; answer: string }[] = [
 export const CONTACT = {
   heading: "Automation systems, AI-native products, and better ways to learn by building.",
   copy: "If any of that sounds like the problem you are trying to solve, I would be glad to hear about it.",
-  cta: { label: "Start a conversation", href: "mailto:nitin.sharma@example.com" },
+  cta: { label: "Start a conversation", href: "mailto:nitinxengg@gmail.com" },
   /** Secondary notes, shown as plain text so nothing pretends to be a live profile. */
   notes: ["Open to internships, freelance builds and collaborations", "Based in Kaithal, Haryana — working remotely"],
 } as const;

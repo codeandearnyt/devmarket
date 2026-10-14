@@ -28,7 +28,7 @@ export default function Story() {
     <section id="story" className="scroll-mt-28 border-y border-white/80 bg-white/38 py-20 lg:py-24">
       <div className="mx-auto grid max-w-[1280px] gap-12 px-5 lg:grid-cols-[.72fr_1.28fr] lg:px-8">
         <div>
-          <SectionTitle title={STORY.heading} />
+          <SectionTitle index="02" title={STORY.heading} />
           {/* The pull quote is the only place lime appears against the light
               palette, which is what makes it read as a highlight. */}
           <Reveal delay={0.15}>

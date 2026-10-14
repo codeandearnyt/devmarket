@@ -47,7 +47,8 @@ export default function Portfolio() {
       <div className="mx-auto max-w-[1280px] px-5 lg:px-8">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <SectionTitle
-            eyebrow="Selected experiments"
+            index="04"
+          eyebrow="Selected experiments"
             title="A portfolio in motion."
             lede="Ten projects that are live right now. Hover or focus one to read the detail, or filter by type — every card links to the real site."
           />
@@ -75,7 +76,14 @@ export default function Portfolio() {
           </Reveal>
         </div>
 
-        <div className="mt-10 grid gap-5 lg:grid-cols-[1fr_.75fr]">
+        {/* Grid management:
+            - 1 col on phones — a 16:10 cover plus a description needs the width.
+            - 2 cols from sm, where each card is still around 280px.
+            - The detail panel joins the list at lg; below that it sits full
+              width underneath, so the cover is never squeezed.
+            `content-start` stops rows stretching to the panel's height, which
+            otherwise leaves a ragged gap under the last row. */}
+          <div className="mt-10 grid gap-5 lg:grid-cols-[1fr_.78fr] lg:items-start">
           <ul className="grid content-start gap-4 sm:grid-cols-2">
             <AnimatePresence initial={false}>
               {visible.map(project => (

@@ -9,6 +9,7 @@ export default function Services() {
     <section id="services" className="scroll-mt-28 border-y border-white/80 bg-white/38 py-20 lg:py-24">
       <div className="mx-auto max-w-[1280px] px-5 lg:px-8">
         <SectionTitle
+          index="06"
           eyebrow="How we can work together"
           title="Fourteen kinds of help."
           lede="Small, well-scoped builds where I can finish the whole thing and hand it over properly."

@@ -11,7 +11,7 @@ const STATUS_STYLES: Record<string, string> = {
 export default function NowBuilding() {
   return (
     <section id="now" className="mx-auto max-w-[1280px] scroll-mt-28 px-5 py-20 lg:px-8 lg:py-24">
-      <SectionTitle title="What is open on my desk right now." lede="Work in progress, kept visible so the progress is legible from the outside." />
+      <SectionTitle index="07" title="What is open on my desk right now." lede="Work in progress, kept visible so the progress is legible from the outside." />
 
       <StaggerGroup className="mt-12 grid gap-4 md:grid-cols-3">
         {NOW_BUILDING.map(item => (

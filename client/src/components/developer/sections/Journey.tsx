@@ -23,6 +23,7 @@ export default function Journey() {
   return (
     <section id="journey" className="mx-auto max-w-[1280px] scroll-mt-28 px-5 py-20 lg:px-8 lg:py-24">
       <SectionTitle
+        index="05"
         title="How I got here."
         lede="Nobody arrives fluent. This is the path so far, and where it is heading."
       />

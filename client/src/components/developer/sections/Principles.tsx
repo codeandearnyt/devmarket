@@ -6,7 +6,7 @@ import { PRINCIPLES } from "@/lib/developerContent";
 export default function Principles() {
   return (
     <section id="principles" className="mx-auto max-w-[1280px] scroll-mt-28 px-5 pb-20 lg:px-8 lg:pb-24">
-      <SectionTitle title="The standard I’m aiming for." />
+      <SectionTitle index="09" title="The standard I’m aiming for." />
 
       <Reveal className="mt-12 grid gap-x-10 sm:grid-cols-2">
         {PRINCIPLES.map(principle => (

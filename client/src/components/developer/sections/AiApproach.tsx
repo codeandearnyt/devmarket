@@ -20,7 +20,7 @@ export default function AiApproach() {
       <div className="mx-auto max-w-5xl px-7 lg:px-14">
         <div className="grid gap-12 lg:grid-cols-[.9fr_1.1fr]">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[.2em] text-[#c7f76d]">How I approach AI</p>
+            <p className="font-mono text-[11px] uppercase tracking-[.2em] text-[#c7f76d]">08 / How I approach AI</p>
             <h2
               id="ai-approach-heading"
               className="mt-4 font-display text-4xl font-semibold leading-[.9] tracking-[-.07em] md:text-6xl"

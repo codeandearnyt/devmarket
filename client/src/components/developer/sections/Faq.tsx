@@ -26,7 +26,7 @@ import { FAQ_ITEMS } from "@/lib/developerContent";
 export default function Faq() {
   return (
     <section id="faq" className="mx-auto max-w-[1280px] scroll-mt-28 px-5 pb-20 lg:px-8 lg:pb-24">
-      <SectionTitle title="Questions people actually ask." lede="Short answers, so you do not have to ask to find out." />
+      <SectionTitle index="10" title="Questions people actually ask." lede="Short answers, so you do not have to ask to find out." />
 
       <Reveal className="mt-12 max-w-3xl">
         <AccordionPrimitive.Root

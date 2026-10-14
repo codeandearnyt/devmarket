@@ -17,6 +17,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import SiteFooter from "@/components/SiteFooter";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Card,
@@ -1427,11 +1428,7 @@ export default function ComponentsShowcase() {
         </div>
       </main>
 
-      <footer className="border-t py-6 mt-12">
-        <div className="container text-center text-sm text-muted-foreground">
-          <p>Shadcn/ui Component Showcase</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { useRealtime } from "@/hooks/useRealtime";
 import { money, priceLabel, typeLabel } from "@/lib/format";
 import HeaderAvatar from "@/components/HeaderAvatar";
+import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import DevMarketIcon from "@/assets/dev-market-icon.png";
 import BlogAdminPanel from "@/components/BlogAdminPanel";
@@ -368,6 +369,7 @@ export default function AdminDashboard() {
           {tab === "ads" && <AdsManager />}
           {tab === "settings" && <SettingsPanel />}
         </main>
+        <SiteFooter />
       </div>
     </div>
   );

@@ -77,9 +77,19 @@ describe("developer content", () => {
     for (const cluster of SKILL_CLUSTERS) {
       for (const skill of cluster.skills) {
         expect(skill.tags.length).toBeGreaterThan(0);
+        expect(skill.tags.every(tag => tag.label.length > 0)).toBe(true);
         expect(skill.copy.length).toBeGreaterThan(20);
       }
     }
+  });
+
+  it("gives the frontend and backend clusters real brand marks", () => {
+    const branded = SKILL_CLUSTERS.filter(c => c.id === "frontend" || c.id === "backend")
+      .flatMap(c => c.skills).filter(skill => skill.logo);
+    // React, Tailwind, Framer, Node, Postgres, Razorpay, Vercel — the two
+    // clusters the brief calls out. Accessibility is a practice, not a product,
+    // so it deliberately has no logo.
+    expect(branded.length).toBe(7);
   });
 
   it("gives every principle a unique number", () => {
