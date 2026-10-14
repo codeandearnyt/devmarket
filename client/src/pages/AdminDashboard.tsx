@@ -7,6 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { useRealtime } from "@/hooks/useRealtime";
 import { money, priceLabel, typeLabel } from "@/lib/format";
 import HeaderAvatar from "@/components/HeaderAvatar";
+import AdminNav from "@/components/AdminNav";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import DevMarketIcon from "@/assets/dev-market-icon.png";
@@ -218,40 +219,15 @@ export default function AdminDashboard() {
   return (
     <div className="liquid-page admin-page min-h-screen bg-[#eef8fa] text-[#172039]">
       <div className="flex min-h-screen flex-col lg:flex-row">
-        <aside className="admin-glass-nav border-b border-[#d7e8eb] bg-[#172039] text-white lg:min-h-screen lg:w-72 lg:border-b-0 lg:border-r lg:border-[#172039] fixed max-lg:static lg:inset-y-0 lg:left-0 z-40 flex flex-col">
-          <div className="flex items-center justify-between px-6 py-6 lg:block">
-            <Link href="/" className="flex items-center gap-3">
-              <img src={DevMarketIcon} alt="DevMarket" className="h-9 w-9 rounded-xl object-contain" />
-              <span className="font-display text-xl font-bold tracking-[-.05em]">dev<span className="text-[#13b8b0]">market</span></span>
-              <span className="ml-2 rounded-full bg-[#c7f76d] px-2 py-1 font-mono text-[8px] uppercase tracking-[.12em] text-[#172039]">admin</span>
-            </Link>
-            <span className="hidden font-mono text-[10px] text-white/45 lg:mt-2 lg:block">COMMAND CENTER / 01</span>
-          </div>
-          <nav className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-4 lg:mt-8 lg:block lg:flex-1 lg:overflow-y-auto lg:overflow-x-hidden lg:px-4 lg:pb-0">
-            {nav.map(item => (
-              <button key={item.id} onClick={() => setTab(item.id)} className={`flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition lg:mb-2 lg:w-full ${tab === item.id ? "bg-[#c7f76d] text-[#172039]" : "text-white/65 hover:bg-white/10 hover:text-white"}`}>
-                {item.icon}<span>{item.label}</span>
-              </button>
-            ))}
-          </nav>
-          <div className="hidden px-6 pb-8 lg:block">
-            <div className="mt-16 border-t border-white/15 pt-5">
-              <p className="text-xs leading-5 text-white/45">Secure administration<br />Payment gates active<br />Storage protected</p>
-              <div className="mt-4 rounded-xl bg-white/5 p-3">
-                <p className="truncate text-xs font-semibold text-white/80">{adminUser?.email ?? adminUser?.name ?? "Operator"}</p>
-                <button
-                  type="button"
-                  onClick={lockConsole}
-                  disabled={adminLogout.isPending}
-                  className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#13b8b0] px-3 py-2 text-xs font-semibold text-white transition hover:bg-[#c7f76d] hover:text-[#172039] disabled:opacity-60"
-                >
-                  <LogOut size={13} /> Lock console
-                </button>
-              </div>
-            </div>
-          </div>
-        </aside>
-        <main className="flex-1 px-5 py-7 lg:ml-72 lg:px-10 lg:py-10">
+        <AdminNav
+          items={nav}
+          activeId={tab}
+          onSelect={setTab}
+          operatorLabel={adminUser?.email ?? adminUser?.name ?? "Operator"}
+          onLock={lockConsole}
+          lockPending={adminLogout.isPending}
+        />
+        <main className="min-w-0 flex-1 px-5 py-7 lg:px-10 lg:py-10">
           <div className="mx-auto max-w-[1180px]">
             <div className="flex items-start justify-between">
               <div>

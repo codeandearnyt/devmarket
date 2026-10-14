@@ -35,14 +35,115 @@ button:active { transform: scale(.985); }
 .font-display { font-family: 'Space Grotesk', sans-serif; }
 .font-mono { font-family: 'DM Mono', monospace; }
 
-/* Lightweight liquid-morphism surfaces: opaque enough to avoid backdrop-filter paint costs. */
-.glass { background: rgba(255,255,255,.78); border: 1px solid rgba(255,255,255,.95); box-shadow: 0 14px 32px rgba(39,104,122,.10), inset 0 1px 0 rgba(255,255,255,.95); }
+/* ---------------------------------------------------------------------------
+   Glass surfaces
+   ---------------------------------------------------------------------------
+   Three tiers, because the cost is very different between them.
+
+   .glass is the cheap default: translucent fills and inset highlights, no
+   backdrop-filter. It stays the bulk of the site because backdrop-filter is the
+   most expensive thing these pages can do - every one already paints several
+   large blurred gradients behind the content, and a backdrop blur on top means
+   the whole viewport is re-composited on scroll.
+
+   .glass-frost is the real frosted-glass treatment and is opt-in, for the few
+   surfaces (bento tiles, nav pill) where seeing the colour bleed through is the
+   point rather than an accident.
+
+   Both tiers carry a solid-fill fallback for visitors who ask the OS for less
+   transparency, so nobody ends up with a washed-out card they cannot read.
+   ------------------------------------------------------------------------- */
+
+.glass {
+  background: rgba(255,255,255,.78);
+  border: 1px solid rgba(255,255,255,.95);
+  box-shadow: 0 14px 32px rgba(39,104,122,.10), inset 0 1px 0 rgba(255,255,255,.95);
+}
+
+/* Frosted glass: real backdrop blur, layered specular highlight, soft outer glow. */
+.glass-frost {
+  background: linear-gradient(140deg, rgba(255,255,255,.62), rgba(255,255,255,.34));
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid rgba(255,255,255,.8);
+  box-shadow:
+    0 18px 44px rgba(23,32,57,.12),
+    0 2px 8px rgba(23,32,57,.06),
+    inset 0 1px 0 rgba(255,255,255,.95),
+    inset 0 -1px 0 rgba(255,255,255,.5);
+}
+
+/* Frost over the dark bands, where a light fill would glare. */
+.glass-frost-dark {
+  background: linear-gradient(140deg, rgba(23,32,57,.62), rgba(23,32,57,.36));
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 18px 44px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.12);
+  color: #fff;
+}
+
+/* A light sweep across the top edge - the refraction cue that reads as glass. */
+.glass-sheen { position: relative; overflow: hidden; }
+.glass-sheen::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 45%;
+  background: linear-gradient(to bottom, rgba(255,255,255,.42), transparent);
+  pointer-events: none;
+}
+
+/*
+  Bento tile. The colour is a per-tile custom property, so one rule covers the
+  whole grid while each cell still reads as its own tint; --bento-tint is set
+  inline per tile.
+*/
+.bento-tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.75rem;
+  border: 1px solid rgba(255,255,255,.8);
+  background:
+    radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, var(--bento-tint, #13b8b0) 22%, transparent), transparent 62%),
+    linear-gradient(150deg, rgba(255,255,255,.72), rgba(255,255,255,.42));
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
+  box-shadow: 0 20px 48px rgba(23,32,57,.12), inset 0 1px 0 rgba(255,255,255,.95);
+  transition: transform .28s cubic-bezier(.22,1,.36,1), box-shadow .28s ease, border-color .28s ease;
+}
+.bento-tile:hover {
+  transform: translate3d(0,-4px,0);
+  border-color: color-mix(in srgb, var(--bento-tint, #13b8b0) 55%, #fff);
+  box-shadow: 0 28px 64px rgba(23,32,57,.16), inset 0 1px 0 rgba(255,255,255,.95);
+}
+/* The same sweep, clipped to the corner radius. */
+.bento-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(160deg, rgba(255,255,255,.38), transparent 42%);
+  pointer-events: none;
+}
+
 .glass-dark { background: #172039; border: 1px solid rgba(255,255,255,.16); color: white; box-shadow: 0 18px 38px rgba(23,32,57,.18); }
 .glass-control { background: rgba(255,255,255,.72); border: 1px solid rgba(255,255,255,.95); box-shadow: inset 0 1px 0 rgba(255,255,255,.95); }
 .glass-surface, section, article, aside, header, footer { border-color: rgba(255,255,255,.9) !important; }
 .glass-surface { background: rgba(255,255,255,.72) !important; box-shadow: 0 14px 32px rgba(39,104,122,.09), inset 0 1px 0 rgba(255,255,255,.95); }
 .admin-glass-nav { background: #172039 !important; border-color: rgba(255,255,255,.14) !important; box-shadow: 8px 0 28px rgba(23,32,57,.15); }
 input, select, textarea { background: rgba(255,255,255,.72) !important; border-color: rgba(255,255,255,.95) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.95); }
+
+/* Honour a request for less transparency with solid fills rather than leaving
+   text sitting on an indistinct wash. */
+@media (prefers-reduced-transparency: reduce) {
+  .glass-frost, .bento-tile, .glass-sheen, .glass-frost-dark {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  .glass-frost, .bento-tile { background: #f8ffff; }
+  .glass-frost-dark { background: #172039; }
+}
 .site-header { position: fixed; inset: 0 0 auto; z-index: 50; padding: 18px 20px 0; transition: transform .24s cubic-bezier(.23,1,.32,1), opacity .2s ease; }
 .site-header-hidden { transform: translate3d(0,-120%,0); opacity: 0; }
 .site-nav-pill { min-height: 60px; border: 1px solid rgba(255,255,255,.9); border-radius: 999px; background: rgba(255,255,255,.84); box-shadow: 0 12px 34px rgba(39,104,122,.14), inset 0 1px 0 rgba(255,255,255,.98); }

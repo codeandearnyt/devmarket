@@ -60,10 +60,11 @@ export const HERO = {
   primaryCta: { label: "Explore capabilities", href: "#work" },
   secondaryCta: { label: "Read the story", href: "#story" },
   portrait: {
-    // The source file is a WebP payload. It shipped for a while under a .jpg
-    // name, which made the server answer `Content-Type: image/jpeg` for WebP
-    // bytes — browsers refuse to decode that, so the portrait rendered at 0×0.
-    src: "/assets/DEVELOPER.webp",
+    // Served from /public/assets. The file really is a JPEG: an earlier copy
+    // shipped under a .jpg name but carried WebP bytes, so the server answered
+    // `Content-Type: image/jpeg` for a payload the browser refused to decode and
+    // the portrait rendered at 0x0.
+    src: "/assets/DEVELOPER.jpg",
     alt: "Portrait of Nitin Sharma",
     badge: "Builder in progress",
     tagline: "Learning. Building. Sharing.",
@@ -75,7 +76,7 @@ export const HERO = {
    */
   stats: [
     { id: "age", value: "16", label: "Years old" },
-    { id: "field", value: "CS", label: "Engineering" },
+    { id: "field", value: "Computer", label: "Engineering" },
     { id: "drive", value: "∞", label: "Curiosity" },
   ],
   scrollCue: "Scroll",

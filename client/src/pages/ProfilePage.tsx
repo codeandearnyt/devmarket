@@ -208,8 +208,8 @@ export default function ProfilePage() {
    */
   const displayPhoto = (() => {
     const source = editing ? draft.avatarSource : storedPhotoUrl(user) ? "manual" : hasGooglePhoto ? "google" : "manual";
-    if (source === "google") return googlePhoto || "/assets/DEVELOPER.webp";
-    return (editing ? draft.photoUrl : storedPhotoUrl(user)) || googlePhoto || "/assets/DEVELOPER.webp";
+    if (source === "google") return googlePhoto || "/assets/DEVELOPER.jpg";
+    return (editing ? draft.photoUrl : storedPhotoUrl(user)) || googlePhoto || "/assets/DEVELOPER.jpg";
   })();
 
   const displayName = useMemo(() => {

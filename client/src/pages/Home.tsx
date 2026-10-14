@@ -8,6 +8,7 @@ import { useRealtime } from "@/hooks/useRealtime";
 import ScrollDepthBackground from "@/components/ScrollDepthBackground";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
+import BentoGrid from "@/components/BentoGrid";
 import TechnologiesSection from "@/components/TechnologiesSection";
 import { money, priceLabel, typeLabel, type ProductCardData } from "@/lib/format";
 
@@ -63,6 +64,8 @@ export default function Home() {
         </div>
         <div className="mx-auto flex max-w-[1280px] justify-between px-5 pb-6 font-mono text-[10px] uppercase tracking-[.15em] text-[#71809f] lg:px-8"><span>Scroll to explore</span><span>01 — 04</span></div>
       </section>
+
+      <BentoGrid />
 
       <section id="explore" className="mx-auto max-w-[1280px] px-5 py-20 lg:px-8"><div className="mb-10 flex flex-col justify-between gap-5 md:flex-row md:items-end"><div><p className="font-mono text-[11px] uppercase tracking-[.2em] text-[#13b8b0]">The library</p><h2 className="mt-3 font-display text-4xl font-semibold tracking-[-.06em] md:text-5xl">Find your next shortcut.</h2></div><div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[.16em] text-[#53617d]"><Sparkles size={15} className="text-[#13b8b0]" /> Hand-picked. No filler.</div></div>
         <div className="mb-8 flex flex-col gap-4 border-y border-[#d7e8eb] py-4 md:flex-row md:items-center md:justify-between"><div className="flex flex-wrap gap-2">{typeTabs.map(tab => <button key={tab.key} onClick={() => { setActiveType(tab.key); track("catalog_filter_changed", { filter: "type", value: tab.key }); }} className={`btn rounded-full px-4 py-2 text-sm font-semibold ${activeType === tab.key ? "bg-[#172039] text-white" : "text-[#53617d] hover:bg-[#e9f7f6]"}`}>{tab.label}</button>)}</div><label className="flex items-center gap-3 rounded-full border border-[#d7e8eb] bg-[#f8ffff] px-4 py-2.5 text-[#53617d] md:w-64"><Search size={16} /><input value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => { if (e.key === "Enter") track("catalog_filter_changed", { filter: "search", value: e.currentTarget.value }); }} placeholder="Search the library" className="w-full bg-transparent text-sm outline-none placeholder:text-[#a1a19b]" /></label></div>
