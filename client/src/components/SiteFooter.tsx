@@ -43,11 +43,11 @@ export default function SiteFooter() {
             first, which pushed the last nav column to 12-13 and wrapped it onto
             a row of its own. */}
           <div className="md:col-span-3">
-            <Link href="/" className="inline-flex items-center gap-3" aria-label="DevMarket home">
-              <img src={DevMarketIcon} alt="" className="h-10 w-10 rounded-xl object-contain" />
-              <span className="font-display text-2xl font-bold tracking-[-.06em]">
-                dev<span className="text-[#13b8b0]">market</span>
-              </span>
+            <Link href="/" className="inline-flex items-center" aria-label="DevMarket home">
+              {/* Icon only. The oversized wordmark below already spells the
+                  name, and a second "devmarket" beside it read as a repeat
+                  rather than a wordmark. */}
+              <img src={DevMarketIcon} alt="" className="h-14 w-14 rounded-2xl object-contain" />
             </Link>
             <p className="mt-6 max-w-sm font-display text-2xl font-semibold leading-[.95] tracking-[-.05em] text-[#172039]">
               Useful work. Clear expectations.
@@ -116,15 +116,23 @@ export default function SiteFooter() {
       </div>
 
       {/*
-        The oversized wordmark. It is `aria-hidden` because the logo link above
-        already names the site; announcing it twice would just be noise. The
-        negative inline margin lets it bleed past the content column on wide
-        screens, which is the whole point of it being this size.
+        The oversized wordmark, centred on the page and split in two colours:
+        "Dev" in the brand ink, "Market" in the accent.
+
+        It is `aria-hidden` because the logo link above already names the site -
+        announcing it a second time would just be noise for a screen reader.
+
+        Centred rather than bled off the left edge: a wordmark that hangs off one
+        side reads as a layout accident, while a centred one closes the page the
+        way a masthead does. The size is capped so "DevMarket" stays inside the
+        content column at every width - at 19vw it ran wider than the viewport
+        and clipped asymmetrically.
       */}
       <div aria-hidden="true" className="relative select-none overflow-hidden">
-        <p className="mx-auto max-w-[1280px] px-5 lg:px-8">
-          <span className="block whitespace-nowrap font-display text-[clamp(4.5rem,19vw,17rem)] font-bold leading-[.78] tracking-[-.07em] text-transparent [-webkit-text-stroke:2px_rgba(19,184,176,.42)] lg:-mx-[8%]">
-            DevMarket
+        <p className="mx-auto max-w-[1280px] px-5 text-center lg:px-8">
+          <span className="block whitespace-nowrap font-display text-[clamp(3rem,16vw,14rem)] font-bold leading-[.82] tracking-[-.055em]">
+            <span className="text-[#172039]">Dev</span>
+            <span className="text-[#13b8b0]">Market</span>
           </span>
         </p>
       </div>
