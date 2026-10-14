@@ -76,15 +76,24 @@ export default function Portfolio() {
           </Reveal>
         </div>
 
-        {/* Grid management:
-            - 1 col on phones — a 16:10 cover plus a description needs the width.
-            - 2 cols from sm, where each card is still around 280px.
-            - The detail panel joins the list at lg; below that it sits full
-              width underneath, so the cover is never squeezed.
-            `content-start` stops rows stretching to the panel's height, which
-            otherwise leaves a ragged gap under the last row. */}
-          <div className="mt-10 grid gap-5 lg:grid-cols-[1fr_.78fr] lg:items-start">
-          <ul className="grid content-start gap-4 sm:grid-cols-2">
+        {/* One row, read left to right.
+            Every project is the same width and the index runs 01, 02, 03 along a
+            single axis, so "the fourth one" means the same thing visually and in
+            the DOM. The previous two-column grid split that order across rows and
+            put a detail panel beside it, so the list read as two things rather
+            than one sequence.
+
+            The row scrolls horizontally with scroll-snap, so a phone gets the same
+            left-to-right sequence instead of a tall stack. It is still a real <ul>,
+            so assistive tech reads all ten in order. tabIndex makes the scroller
+            reachable by keyboard, which it otherwise would not be. */}
+          <div className="mt-10">
+            <ul
+              className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3"
+              tabIndex={0}
+              role="group"
+              aria-label="Projects, ordered left to right. Scroll horizontally to see all ten."
+            >
             <AnimatePresence initial={false}>
               {visible.map(project => (
                 <motion.li
@@ -93,6 +102,7 @@ export default function Portfolio() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={reduceMotion ? undefined : { opacity: 0, scale: 0.96, transition: { duration: 0.16 } }}
                   transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+                  className="shrink-0"
                 >
                   {/* The whole card is a link: the live project is the most
                       useful thing a reader can do here. */}
@@ -104,7 +114,7 @@ export default function Portfolio() {
                     onFocus={() => setActiveId(project.id)}
                     onClick={() => setActiveId(project.id)}
                     aria-label={`${project.title} — opens in a new tab`}
-                    className={`group block h-full overflow-hidden rounded-[1.5rem] border bg-[#f8ffff] transition duration-200 ease-[cubic-bezier(.23,1,.32,1)] hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(23,32,57,.14)] ${
+                    className={`group block h-full w-[78vw] max-w-[22rem] shrink-0 snap-start overflow-hidden rounded-[1.5rem] border bg-[#f8ffff] transition duration-200 ease-[cubic-bezier(.23,1,.32,1)] hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(23,32,57,.14)] ${
                       active.id === project.id ? "border-[#13b8b0]" : "border-[#d7e8eb] hover:border-[#13b8b0]"
                     }`}
                   >

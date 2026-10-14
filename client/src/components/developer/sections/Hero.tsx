@@ -38,7 +38,7 @@ export default function Hero() {
           >
             {HERO.name}
             <br />
-            <span className="text-[#13b8b0]">{HERO.nameAccent}</span>
+            <span className="type-script text-[#13b8b0]">{HERO.nameAccent}</span>
           </motion.h1>
 
           <motion.p {...rise(0.12)} className="mt-8 max-w-xl text-lg leading-8 text-[#53617d] md:text-xl">

@@ -33,7 +33,7 @@ export default function Story() {
               palette, which is what makes it read as a highlight. */}
           <Reveal delay={0.15}>
             <blockquote className="mt-8 border-l-2 border-[#c7f76d] pl-5">
-              <p className="font-display text-xl font-medium leading-8 tracking-[-.02em] text-[#172039]">
+              <p className="type-serif text-xl font-normal italic leading-8 text-[#172039]">
                 {STORY.pullQuote}
               </p>
             </blockquote>

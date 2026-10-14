@@ -1,4 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+/*
+  Base families, plus four accents used at highlighted spots only:
+    Lobster         - script, for celebratory single words
+    Lora            - serif, for pull quotes and editorial moments
+    Poppins         - geometric sans, for sub-heads and labels
+    JetBrains Mono  - mono, for code and numeric stats
+
+  Weight counts are kept tight on purpose. Every extra weight is another font
+  file, and this import is render-blocking, so only the weights actually used
+  are requested.
+*/
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;600&family=Lobster&family=Lora:ital,wght@0,400;0,600;1,400&family=Poppins:wght@400;600;700&display=swap');
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 
@@ -34,6 +45,24 @@ button:active { transform: scale(.985); }
 
 .font-display { font-family: 'Space Grotesk', sans-serif; }
 .font-mono { font-family: 'DM Mono', monospace; }
+
+/* ---------------------------------------------------------------------------
+   Accent families
+   ---------------------------------------------------------------------------
+   Four extras, each used at a handful of highlighted spots rather than as a
+   site-wide face. They get dedicated class names rather than overriding
+   .font-display / .font-mono, because the whole site is built on those two and
+   a blanket change would silently reflow every heading and every stat.
+
+     .type-script  Lobster        one celebratory word at a time
+     .type-serif   Lora           pull quotes and editorial lines
+     .type-sans    Poppins        sub-heads, labels, UI numerals
+     .type-mono    JetBrains Mono code and numeric stats
+   ------------------------------------------------------------------------- */
+.type-script { font-family: 'Lobster', cursive; }
+.type-serif  { font-family: 'Lora', Georgia, serif; }
+.type-sans   { font-family: 'Poppins', 'DM Sans', sans-serif; }
+.type-mono   { font-family: 'JetBrains Mono', 'DM Mono', monospace; }
 
 /* ---------------------------------------------------------------------------
    Glass surfaces

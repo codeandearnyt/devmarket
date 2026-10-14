@@ -52,7 +52,9 @@ export default function SectionTitle({
           </h2>
         </div>
       </div>
-      {lede ? <p className="mt-5 max-w-xl text-base leading-7 text-[#53617d] md:text-lg">{lede}</p> : null}
+      {lede ? (
+        <p className="type-sans mt-5 max-w-xl text-base leading-7 font-normal text-[#53617d] md:text-lg">{lede}</p>
+      ) : null}
     </Reveal>
   );
 }

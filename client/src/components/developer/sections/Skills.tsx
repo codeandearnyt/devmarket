@@ -53,14 +53,14 @@ export default function Skills() {
               {/* cluster header — the divider plus number is what makes the
                   four areas read as four areas rather than sixteen cards. */}
               <div className="flex items-baseline gap-4 border-t border-[#172039]/15 pt-5">
-                <span className="font-mono text-sm text-[#13b8b0]">{String(clusterIndex + 1).padStart(2, "0")}</span>
+                <span className="type-mono text-sm font-semibold text-[#13b8b0]">{String(clusterIndex + 1).padStart(2, "0")}</span>
                 <div className="min-w-0 flex-1">
                   <h3 id={`cluster-${cluster.id}`} className="font-display text-xl font-semibold tracking-[-.04em] text-[#172039]">
                     {cluster.title}
                   </h3>
                   <p className="mt-1.5 text-sm leading-6 text-[#53617d]">{cluster.blurb}</p>
                 </div>
-                <span className="shrink-0 font-mono text-[10px] uppercase tracking-[.16em] text-[#71809f]">
+                <span className="type-mono shrink-0 text-[10px] font-semibold uppercase tracking-[.14em] text-[#71809f]">
                   {cluster.skills.length}
                 </span>
               </div>

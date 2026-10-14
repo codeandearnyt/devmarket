@@ -49,7 +49,7 @@ export default function SiteFooter() {
                   rather than a wordmark. */}
               <img src={DevMarketIcon} alt="" className="h-14 w-14 rounded-2xl object-contain" />
             </Link>
-            <p className="mt-6 max-w-sm font-display text-2xl font-semibold leading-[.95] tracking-[-.05em] text-[#172039]">
+            <p className="type-serif mt-6 max-w-sm text-[1.375rem] font-semibold leading-[1.3] text-[#172039]">
               Useful work. Clear expectations.
             </p>
             <p className="mt-4 max-w-sm text-sm leading-7 text-[#53617d]">
@@ -132,7 +132,10 @@ export default function SiteFooter() {
         <p className="mx-auto max-w-[1280px] px-5 text-center lg:px-8">
           <span className="block whitespace-nowrap font-display text-[clamp(3rem,16vw,14rem)] font-bold leading-[.82] tracking-[-.055em]">
             <span className="text-[#172039]">Dev</span>
-            <span className="text-[#13b8b0]">Market</span>
+            {/* Lobster on one word only. It is a script face; used across a whole
+                page it turns into novelty, used on a single highlight it reads as
+                a deliberate accent. */}
+            <span className="type-script text-[#13b8b0]">Market</span>
           </span>
         </p>
       </div>

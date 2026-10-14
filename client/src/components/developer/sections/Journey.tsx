@@ -49,7 +49,7 @@ export default function Journey() {
 
               <div className="grid flex-1 gap-1 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-baseline lg:gap-10">
                 <div>
-                  <p className="font-mono text-[10px] uppercase tracking-[.18em] text-[#13b8b0]">{entry.when}</p>
+                  <p className="type-mono text-[10px] font-semibold uppercase tracking-[.16em] text-[#13b8b0]">{entry.when}</p>
                   <h3 className="mt-1.5 font-display text-xl font-semibold tracking-[-.04em] text-[#172039]">
                     {entry.title}
                   </h3>
