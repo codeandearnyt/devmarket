@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, Check, ChevronRight, CreditCard, Eye, EyeOff, FolderPlus, FolderTree, LayoutDashboard, Layers3, Loader2, Lock, LogOut, Megaphone, MessageSquareText, PackagePlus, Settings2, ShieldCheck, Trash2, Users, X } from "lucide-react";
+import { BarChart3, BookOpen, Check, ChevronRight, CreditCard, Eye, EyeOff, FolderPlus, FolderTree, LayoutDashboard, Layers3, Loader2, Lock, LogOut, Megaphone, MessageSquareText, PackagePlus, Settings2, ShieldCheck, Trash2, Users, Wallet, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
@@ -8,6 +8,8 @@ import { useRealtime } from "@/hooks/useRealtime";
 import { money, priceLabel, typeLabel } from "@/lib/format";
 import HeaderAvatar from "@/components/HeaderAvatar";
 import AdminNav from "@/components/AdminNav";
+import PaymentsPanel from "@/components/PaymentsPanel";
+import LoadingAnimation from "@/components/LoadingAnimation";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import DevMarketIcon from "@/assets/dev-market-icon.png";
@@ -206,6 +208,7 @@ export default function AdminDashboard() {
   const nav = [
     { id: "overview", label: "Overview", icon: <LayoutDashboard size={16} /> },
     { id: "insights", label: "Insights", icon: <BarChart3 size={16} /> },
+    { id: "payments", label: "Payments", icon: <Wallet size={16} /> },
     { id: "reviews", label: "Reviews", icon: <MessageSquareText size={16} /> },
     { id: "products", label: "Products", icon: <PackagePlus size={16} /> },
     { id: "categories", label: "Categories", icon: <FolderTree size={16} /> },
@@ -217,8 +220,15 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="liquid-page admin-page min-h-screen bg-[#eef8fa] text-[#172039]">
-      <div className="flex min-h-screen flex-col lg:flex-row">
+    <div className="liquid-page admin-page min-h-screen bg-[#eef8fa] text-[#172039] lg:h-[100dvh] lg:min-h-0 lg:overflow-hidden">
+      {/* App shell. From lg up the row is exactly one viewport tall and the
+          document stops scrolling: the rail is a sibling of <main>, so it cannot
+          move, and <main> is the only scroll container. Below lg both are inert
+          and the page falls back to normal document flow.
+
+          100dvh over 100vh because a mobile URL bar would otherwise crop the
+          shell and hand mobile a second, unwanted scrollbar. */}
+      <div className="flex min-h-screen flex-col lg:h-full lg:min-h-0 lg:flex-row">
         <AdminNav
           items={nav}
           activeId={tab}
@@ -227,7 +237,7 @@ export default function AdminDashboard() {
           onLock={lockConsole}
           lockPending={adminLogout.isPending}
         />
-        <main className="min-w-0 flex-1 px-5 py-7 lg:px-10 lg:py-10">
+        <main className="min-w-0 flex-1 px-5 py-7 lg:overflow-y-auto lg:px-10 lg:py-10">
           <div className="mx-auto max-w-[1180px]">
             <div className="flex items-start justify-between">
               <div>
@@ -283,6 +293,7 @@ export default function AdminDashboard() {
             </div>
           </>}
           {tab === "insights" && <AdminInsightsPanel />}
+          {tab === "payments" && <PaymentsPanel orders={orders} approve={approve} reject={reject} />}
           {tab === "reviews" && <ReviewModerationPanel />}
           {tab === "products" && <>
             <div className="mb-6 flex items-center justify-between">
@@ -301,6 +312,26 @@ export default function AdminDashboard() {
                 onCancel={() => { setShowProductForm(false); setEditingProductId(null); }}
               />
             )}
+            {products.isPending ? (
+              <div className="col-span-full flex flex-col items-center gap-5 py-24">
+                <LoadingAnimation size={112} label="Loading products" />
+                <p className="text-sm font-medium text-[#4a6b78]">Loading products…</p>
+              </div>
+            ) : !products.data?.length ? (
+              <div className="col-span-full neu-admin-card-inset px-6 py-20 text-center">
+                <p className="font-display text-xl font-semibold tracking-[-.03em] text-[#172039]">No products yet</p>
+                <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-[#4a6b78]">
+                  Nothing has been published to the library. Use Add product to put the first listing up.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setEditingProductId(null); setProductDraft(emptyProductDraft); setShowProductForm(true); }}
+                  className="neu-admin-btn-dark mt-6 inline-flex items-center px-4 py-2.5 text-sm font-semibold"
+                >
+                  <FolderPlus size={16} className="mr-2" /> Add product
+                </button>
+              </div>
+            ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {products.data?.map(product => (
                 <div key={product.id} className="neu-admin-card p-5">
@@ -337,6 +368,7 @@ export default function AdminDashboard() {
                 </div>
               ))}
             </div>
+            )}
           </>}
           {tab === "blog" && <BlogAdminPanel />}
           {tab === "categories" && <CategoryManager />}
@@ -344,17 +376,19 @@ export default function AdminDashboard() {
           {tab === "users" && <UserManager operatorId={adminUser?.id} />}
           {tab === "ads" && <AdsManager />}
           {tab === "settings" && <SettingsPanel />}
+
+          {/* Still a block child of <main>, never a flex sibling of the rail -
+              that is what turned it into a third column and made it compete with
+              the content. Being last in the scroll region is the point: the
+              shell no longer scrolls the document, so a footer left outside
+              <main> would be clipped off the bottom with no way to reach it. */}
+          <SiteFooter
+            variant="compact"
+            operatorLabel={adminUser?.email ?? adminUser?.name ?? "Operator"}
+            onLock={lockConsole}
+          />
         </main>
       </div>
-
-      {/* Outside the lg:flex-row container on purpose. As a child of it the
-          footer became a third flex column competing with the rail and main,
-          which is what pushed it over the page content on desktop. */}
-      <SiteFooter
-        variant="compact"
-        operatorLabel={adminUser?.email ?? adminUser?.name ?? "Operator"}
-        onLock={lockConsole}
-      />
     </div>
   );
 }

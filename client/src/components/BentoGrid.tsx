@@ -1,4 +1,4 @@
-import { Code2, CreditCard, Download, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import { BadgeCheck, Code2, CreditCard, Download, Images, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import ApplePay from "@/assets/apple-pay-icon.svg";
@@ -40,14 +40,19 @@ const PAYMENT_METHODS: { label: string; src: string }[] = [
 /**
  * Bento grid for the storefront.
  *
- * Layout uses a hierarchical 4-column grid with varied tile spans:
+ * Layout is a hierarchy of three weights on a 4-column grid:
  * - 1 hero tile: 2x2 (spans 2 cols, 2 rows) - the focal point
  * - 1 wide tile: 2x1 (spans 2 cols, 1 row) - secondary emphasis
- * - 4 small tiles: 1x1 each - supporting points
+ * - 6 small tiles: 1x1 each - supporting points
  *
- * This fills 10 cells in a 4-col grid (2.5 rows), creating natural visual
- * hierarchy without empty cells. The grid uses auto-rows-[minmax(0,1fr)]
- * for equal row heights and responsive cols: 1 on mobile, 2 on tablet, 4 on desktop.
+ * The cell count is deliberate and exact: 4 + 2 + 6 = 12 = 4 cols x 3 rows.
+ * A bento grid should hold exactly as many cells as it has content for; the
+ * six-tile version covered only 10 and left two visible holes at the end of the
+ * third row. Add a tile and the arithmetic has to stay at 12, or it breaks again.
+ *
+ * auto-rows-[minmax(0,1fr)] keeps the rows equal height. Columns go 1 on mobile,
+ * 2 from sm, 4 from lg - and the spans are lg-only, so the tablet and mobile
+ * layouts are a plain uniform stack.
  *
  * The per-tile colour is passed through as a CSS custom property, which the
  * `.bento-tile` rule mixes into its gradient. One rule therefore covers every
@@ -113,6 +118,20 @@ const TILES: BentoTile[] = [
     copy: "The library is edited. If something does not earn its place, it does not stay.",
     icon: Sparkles,
     tint: "#7658f5",
+  },
+  {
+    id: "preview",
+    title: "Look before you pay",
+    copy: "Listings carry a preview gallery, so you can page through the actual work on the product page before you reach checkout.",
+    icon: Images,
+    tint: "#13b8b0",
+  },
+  {
+    id: "reviews",
+    title: "Reviews you can trust",
+    copy: "A review only posts against a paid or delivered order. Nobody can rate something they have not bought.",
+    icon: BadgeCheck,
+    tint: "#c7f76d",
   },
 ];
 

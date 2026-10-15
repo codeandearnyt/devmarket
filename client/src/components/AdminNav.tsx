@@ -214,8 +214,14 @@ export default function AdminNav({
         </div>
       ) : null}
 
-      {/* ---------- Desktop rail (lg and up) ---------- */}
-      <aside className="admin-glass-nav sticky top-0 hidden h-screen w-72 shrink-0 flex-col border-r border-white/10 bg-[#172039] text-white lg:flex">
+      {/* ---------- Desktop rail (lg and up) ----------
+          `lg:h-full` rather than `h-screen`: the rail is a flex child of a shell
+          that is already exactly one viewport tall, so inheriting that height is
+          correct by construction. `h-screen` here would only agree with the
+          shell by coincidence and would drift the moment the shell's height
+          changed. `sticky` is kept but is now belt-and-braces — the rail sits
+          outside the scroll container, so it cannot move either way. */}
+      <aside className="admin-glass-nav sticky top-0 hidden h-full w-72 shrink-0 flex-col self-stretch border-r border-white/10 bg-[#172039] text-white lg:flex">
         <div className="px-6 pb-4 pt-7">
           <Link href="/" className="flex items-center gap-3">
             <img src={DevMarketIcon} alt="" className="h-9 w-9 rounded-xl object-contain" />

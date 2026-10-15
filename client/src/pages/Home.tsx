@@ -9,6 +9,7 @@ import ScrollDepthBackground from "@/components/ScrollDepthBackground";
 import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import BentoGrid from "@/components/BentoGrid";
+import LoadingAnimation from "@/components/LoadingAnimation";
 import TechnologiesSection from "@/components/TechnologiesSection";
 import { money, priceLabel, typeLabel, type ProductCardData } from "@/lib/format";
 
@@ -73,7 +74,24 @@ export default function Home() {
           <label className="text-xs font-semibold text-[#53617d]">Maximum price<input type="number" min="0" inputMode="numeric" value={maxPrice} onChange={e => { setMaxPrice(e.target.value); track("catalog_filter_changed", { filter: "max_price", value: e.target.value }); }} placeholder="No limit" className="mt-2 w-full rounded-xl border border-[#d7e8eb] bg-transparent px-3 py-2.5 text-sm font-normal text-[#172039] outline-none placeholder:text-[#a1a19b] focus:border-[#13b8b0]" /></label>
           <label className="text-xs font-semibold text-[#53617d]">Sort by<select value={sort} onChange={e => { const value = e.target.value as typeof sort; setSort(value); track("catalog_filter_changed", { filter: "sort", value }); }} className="mt-2 w-full rounded-xl border border-[#d7e8eb] bg-transparent px-3 py-2.5 text-sm font-normal text-[#172039] outline-none focus:border-[#13b8b0]"><option value="popular">Most popular</option><option value="newest">Newest first</option><option value="price">Lowest price</option></select></label>
         </div>
-        {filtered.length ? <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">{filtered.map((product, i) => <ProductCard key={product.id} product={product} index={i} />)}</div> : <div className="rounded-2xl border border-dashed border-[#b9d6db] p-14 text-center text-[#53617d]">No products match that search yet.</div>}
+        {/* Three states, not two. `filtered` is empty while the catalog query is
+            in flight, so the old two-branch markup answered "still loading" with
+            "No products match that search yet." - a confident, wrong message
+            shown to every visitor on first paint. */}
+        {productsQuery.isPending ? (
+          <div className="flex flex-col items-center gap-6 py-24">
+            <LoadingAnimation size={140} label="Loading products" />
+            <p className="text-sm font-medium text-[#53617d]">Loading products…</p>
+          </div>
+        ) : filtered.length ? (
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">{filtered.map((product, i) => <ProductCard key={product.id} product={product} index={i} />)}</div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-[#b9d6db] p-14 text-center text-[#53617d]">
+            {allProducts.length
+              ? "No products match that search yet. Clear the filters to see the whole library."
+              : "The library is empty right now. New listings land every week."}
+          </div>
+        )}
       </section>
 
 

@@ -542,7 +542,7 @@ input, select, textarea { background: rgba(255,255,255,.72) !important; border-c
   box-shadow: var(--neu-a-in) !important;
   color: #172039;
 }
-.admin-page .neu-admin-well::placeholder { color: #8fa8b3; }
+.admin-page .neu-admin-well::placeholder { color: #55697a; }
 .admin-page .neu-admin-well:focus {
   box-shadow: var(--neu-a-in), 0 0 0 3px rgba(19, 184, 176, .3) !important;
 }
@@ -554,6 +554,87 @@ input, select, textarea { background: rgba(255,255,255,.72) !important; border-c
   background-size: 0.7rem;
   padding-right: 2.5rem;
 }
+
+/* --- Every admin control, not only the ones a component remembered ----------
+
+   The global rule above (line 164) paints *all* inputs with
+   `rgba(255,255,255,.72)` on a `rgba(255,255,255,.95)` border, both
+   `!important`. On the storefront that is a glass field and reads fine. Over
+   the admin's `#e7f1f5` neomorphic base it produced the opposite of a carved
+   well: a near-white slab with a white border, so the edge of the field was
+   invisible and the inset shadow had nothing to sit against.
+
+   Only AdsManager and SettingsPanel applied `.neu-admin-well`, which is why the
+   inputs looked right on two tabs and flat on the other five. Rather than
+   remember the class in seven more components, scope the treatment to the
+   element type inside `.admin-page`. One rule, no per-component bookkeeping.
+
+   Checkbox and radio are excluded: they are 16px targets, and a full-width
+   inset well on one renders as a smudged box. They get the accent treatment
+   below instead.
+   -------------------------------------------------------------------------- */
+.admin-page :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select) {
+  background: var(--neu-a-base) !important;
+  border: 1px solid rgba(23, 32, 57, .07) !important;
+  color: #172039 !important;
+  border-radius: .9rem !important;
+  box-shadow:
+    var(--neu-a-in),
+    0 1px 0 rgba(255, 255, 255, .7) !important;
+}
+.admin-page :is(input, textarea, select)::placeholder {
+  color: #55697a !important;
+  opacity: 1 !important;
+}
+.admin-page :is(input:not([type="checkbox"]):not([type="radio"]), textarea, select):focus {
+  border-color: rgba(19, 184, 176, .55) !important;
+  box-shadow:
+    var(--neu-a-in),
+    0 0 0 3px rgba(19, 184, 176, .32) !important;
+}
+.admin-page :is(input, textarea, select):disabled {
+  color: #6d8290 !important;
+  box-shadow: var(--neu-a-in) !important;
+  cursor: not-allowed;
+}
+
+/* Checkbox and radio: a raised chip that sinks when ticked, so they read as
+   pressable rather than as an unstyled native control. */
+.admin-page :is(input[type="checkbox"], input[type="radio"]) {
+  appearance: none;
+  flex: none;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: .45rem;
+  border: 1px solid rgba(23, 32, 57, .1);
+  background: var(--neu-a-base);
+  box-shadow: var(--neu-a-in);
+  cursor: pointer;
+  transition: background .15s ease, box-shadow .15s ease;
+}
+.admin-page input[type="radio"] { border-radius: 999px; }
+.admin-page :is(input[type="checkbox"], input[type="radio"]):checked {
+  background: #13b8b0;
+  border-color: #13b8b0;
+  box-shadow: var(--neu-a-in), inset 0 0 0 3px rgba(255, 255, 255, .85);
+}
+.admin-page :is(input[type="checkbox"], input[type="radio"]):focus-visible {
+  outline: 3px solid rgba(19, 184, 176, .45);
+  outline-offset: 2px;
+}
+
+/* Selects inside the admin shell get the chevron even when a component did not
+   add `.neu-admin-well`, otherwise the native arrow sits on the inset edge. */
+.admin-page select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%235c7f8c' stroke-width='1.6'%3E%3Cpath d='M1 1.5 6 6.5l5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: .7rem;
+  padding-right: 2.5rem !important;
+}
+/* Restore the caret the `appearance: none` above removes. */
+.admin-page select[multiple] { background-image: none; padding-right: 1rem !important; }
 
 /* Buttons stand proud, sink when pressed. */
 .admin-page .neu-admin-btn {
