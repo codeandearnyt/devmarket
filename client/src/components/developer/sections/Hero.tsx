@@ -80,8 +80,8 @@ export default function Hero() {
               <img
                 src={HERO.portrait.src}
                 alt={HERO.portrait.alt}
-                width={1254}
-                height={1254}
+                width={1120}
+                height={1120}
                 decoding="async"
                 fetchPriority="high"
                 className="aspect-square w-full object-cover"

@@ -60,14 +60,17 @@ export const HERO = {
   primaryCta: { label: "Explore capabilities", href: "#work" },
   secondaryCta: { label: "Read the story", href: "#story" },
   portrait: {
-    // Served from /public/assets as developer-portrait.jpg.
+    // Served from /public/assets as developer-portrait-1120.jpg.
+  // The filename carries the pixel width on purpose. /assets/* is served
+  // `immutable, max-age=1y`, so re-encoding a file in place is invisible to
+  // anyone who has already loaded it; a new filename is the only cache bust.
     //
     // The filename is deliberately not "DEVELOPER.jpg": that exact URL shipped
     // once with WebP bytes behind a .jpg name, and Vercel serves /assets with
     // max-age=31536064, immutable. Every browser that hit it during the broken
     // window is now holding a cached decode failure for a year, and a new
     // filename is the only way to make those caches miss.
-    src: "/assets/developer-portrait.jpg",
+    src: "/assets/developer-portrait-1120.jpg",
     alt: "Portrait of Nitin Sharma",
     badge: "Builder in progress",
     tagline: "Learning. Building. Sharing.",
