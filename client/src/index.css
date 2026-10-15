@@ -163,6 +163,62 @@ button:active { transform: scale(.985); }
 .admin-glass-nav { background: #172039 !important; border-color: rgba(255,255,255,.14) !important; box-shadow: 8px 0 28px rgba(23,32,57,.15); }
 input, select, textarea { background: rgba(255,255,255,.72) !important; border-color: rgba(255,255,255,.95) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.95); }
 
+/* ==========================================================================
+   Accessible brand colour (WCAG 2.1 AA)
+
+   Measured with the WCAG relative-luminance formula, not estimated:
+
+     #13b8b0 on #eef8fa ............ 2.28:1   needs 4.5:1 (body), 3:1 (large)
+     #13b8b0 on #f8ffff ............ 2.44:1
+     #71809f on #eef8fa ............ 3.68:1
+     #ffffff on #13b8b0 ............ 2.31:1
+
+   The teal is a good colour and it is the brand. The problem is that it was
+   doing two jobs at once. As a fill - dots, rules, icon chips, button shapes -
+   it is fine. As text on a pale background it is unreadable. So it is split
+   rather than darkened everywhere:
+
+     --teal      stays #13b8b0 for every decorative use, unchanged
+     --teal-ink  is the same hue at a lightness that can carry text
+
+   On dark panels the original is already 6.45:1 against #172039, so it is
+   restored there rather than being needlessly muddied. The switch rides on
+   custom-property inheritance, so it is per-subtree rather than a global
+   override: any element inside a navy panel reads the bright teal again
+   without each call site having to know where it is rendered.
+
+   --muted-ink does the same for #71809f, and flips lighter on dark for the
+   same reason: darkening a colour that sits on navy makes it worse.
+   ========================================================================== */
+:root {
+  --teal-ink: #0c7a73;   /* 4.80:1 on #eef8fa, 5.12:1 on #f8ffff */
+  --muted-ink: #5a6982;  /* 5.20:1 on #eef8fa */
+}
+
+/* Teal and muted grey used as TEXT. Fill, border and shadow usages of the
+   same hex are untouched - a bg-[#13b8b0] button or border still resolves to
+   the brand value. */
+.text-\[\#13b8b0\] { color: var(--teal-ink) !important; }
+.text-\[\#71809f\] { color: var(--muted-ink) !important; }
+
+/* #a1a19b was the second placeholder grey, used in ImageField,
+   ProductImageGallery, ProfilePage and the Home filter inputs. On white it
+   resolves to about 1.97:1, so a field gave a visitor no hint at all about
+   what belonged in it. Same remedy as the admin placeholders: raise it to
+   the muted ink that clears 4.5:1. Covers both the placeholder pseudo-element
+   and plain text uses such as a "Not set" fallback. */
+.text-\[\#a1a19b\] { color: var(--muted-ink) !important; }
+.placeholder\:text-\[\#a1a19b\]::placeholder { color: var(--muted-ink) !important; }
+
+/* Dark surfaces: restore the bright teal and lift the muted grey.
+   #a8b6cf on #172039 is 7.93:1. */
+.bg-\[\#172039\],
+.glass-dark,
+.bg-\[\#0b1220\] {
+  --teal-ink: #13b8b0;
+  --muted-ink: #a8b6cf;
+}
+
 /* Honour a request for less transparency with solid fills rather than leaving
    text sitting on an indistinct wash. */
 @media (prefers-reduced-transparency: reduce) {

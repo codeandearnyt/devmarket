@@ -10,7 +10,7 @@ type Filter = ProjectKind | "ALL";
 const KIND_STYLES: Record<ProjectKind, string> = {
   PLATFORM: "bg-[#172039] text-white",
   AI: "bg-[#7658f5] text-white",
-  WEB: "bg-[#13b8b0] text-white",
+  WEB: "bg-[#0c7a73] text-white",
   APP: "bg-[#c7f76d] text-[#172039]",
 };
 
@@ -91,7 +91,6 @@ export default function Portfolio() {
             <ul
               className="no-scrollbar flex snap-x snap-mandatory gap-4 overflow-x-auto pb-3"
               tabIndex={0}
-              role="group"
               aria-label="Projects, ordered left to right. Scroll horizontally to see all ten."
             >
             <AnimatePresence initial={false}>
@@ -113,7 +112,6 @@ export default function Portfolio() {
                     onMouseEnter={() => setActiveId(project.id)}
                     onFocus={() => setActiveId(project.id)}
                     onClick={() => setActiveId(project.id)}
-                    aria-label={`${project.title} — opens in a new tab`}
                     className={`group block h-full w-[78vw] max-w-[22rem] shrink-0 snap-start overflow-hidden rounded-[1.5rem] border bg-[#f8ffff] transition duration-200 ease-[cubic-bezier(.23,1,.32,1)] hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(23,32,57,.14)] ${
                       active.id === project.id ? "border-[#13b8b0]" : "border-[#d7e8eb] hover:border-[#13b8b0]"
                     }`}
@@ -145,14 +143,15 @@ export default function Portfolio() {
                         <ExternalLink
                           size={16}
                           aria-hidden="true"
-                          className="mt-0.5 shrink-0 text-[#71809f] transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[#0b7c77]"
+                          className="mt-0.5 shrink-0 text-[#5a6982] transition-transform duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[#0b7c77]"
                         />
                       </div>
 
                       <p className="mt-2 text-sm leading-6 text-[#53617d]">{project.copy}</p>
 
-                      <p className="mt-3 truncate font-mono text-[11px] text-[#71809f]">{project.url.replace(/^https?:\/\//, "")}</p>
+                      <p className="mt-3 truncate font-mono text-[11px] text-[#5a6982]">{project.url.replace(/^https?:\/\//, "")}</p>
                     </div>
+                    <span className="sr-only">(opens in a new tab)</span>
                   </a>
                 </motion.li>
               ))}
@@ -199,7 +198,7 @@ export default function Portfolio() {
                 <p className="mt-4 text-base leading-7 text-white/70">{active.copy}</p>
 
                 <div className="mt-8">
-                  <p className="font-mono text-[10px] uppercase tracking-[.16em] text-white/45">What it is</p>
+                  <p className="font-mono text-[10px] uppercase tracking-[.16em] text-white/65">What it is</p>
                   <p className="mt-2 font-display text-xl font-semibold text-[#13b8b0]">{active.outcome}</p>
                 </div>
 
@@ -215,7 +214,7 @@ export default function Portfolio() {
                   href={active.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn mt-8 inline-flex min-h-12 items-center rounded-full bg-[#13b8b0] px-6 py-3 text-sm font-semibold text-white hover:bg-[#0b7c77]"
+                  className="btn mt-8 inline-flex min-h-12 items-center rounded-full bg-[#0c7a73] px-6 py-3 text-sm font-semibold text-white hover:bg-[#0a5f5a]"
                 >
                   Visit {active.title}
                   <ArrowUpRight className="ml-2" size={16} aria-hidden="true" />

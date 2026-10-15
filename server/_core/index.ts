@@ -9,7 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { realtimeClientCount, subscribeRealtime } from "../realtime";
-import { listPublishedBlogPosts } from "../db";
+import { listPublishedBlogPosts, listProducts } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -30,6 +30,24 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
+/**
+ * The origin every absolute URL in the sitemap is built from.
+ *
+ * PUBLIC_SITE_URL is the intended override, but its checked-in value is
+ * `http://localhost:3000` for local development. That value is copied into
+ * plenty of environments by reflex, and a sitemap full of localhost URLs tells a
+ * search engine the real site lives at 127.0.0.1. So a local-looking value is
+ * treated as "not configured" and the production origin is used instead.
+ */
+const DEFAULT_ORIGIN = "https://devmarket-azure.vercel.app";
+
+function siteOrigin(): string {
+  const configured = (process.env.PUBLIC_SITE_URL || "").trim();
+  if (!configured) return DEFAULT_ORIGIN;
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(configured)) return DEFAULT_ORIGIN;
+  return configured.replace(/\/$/, "");
+}
+
 export async function createApp() {
   const app = express();
   const server = createServer(app);
@@ -38,12 +56,40 @@ export async function createApp() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  // Sitemap is generated, never a static file. A hand-maintained
+  // client/public/sitemap.xml used to sit in front of this route and shadow it
+  // entirely, so it went stale the moment a post was published or deleted and
+  // pointed at the scaffold's old preview domain.
   app.get("/sitemap.xml", async (_req, res) => {
-    const baseUrl = (process.env.PUBLIC_SITE_URL || "https://devmarket.manus.space").replace(/\/$/, "");
-    const posts = await listPublishedBlogPosts();
-    const urls = ["/", "/blog", "/developer", "/about", "/privacy", "/terms", "/contact", ...posts.map(post => `/blog/${post.slug}`)];
-    const escapeXml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
-    const body = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.map(url => `<url><loc>${escapeXml(`${baseUrl}${url}`)}</loc></url>`).join("")}</urlset>`;
+    const baseUrl = siteOrigin();
+    const [posts, products] = await Promise.all([listPublishedBlogPosts(), listProducts()]);
+
+    const escapeXml = (value: string) =>
+      value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+
+    type Entry = { path: string; lastmod?: Date | string | null };
+    const entries: Entry[] = [
+      { path: "/" },
+      { path: "/blog" },
+      { path: "/developer" },
+      { path: "/about" },
+      { path: "/privacy" },
+      { path: "/terms" },
+      { path: "/contact" },
+      // The product pages are the reason a marketplace exists and the URLs a
+      // buyer actually lands on. They were missing entirely: a sitemap of only
+      // static pages tells a crawler the listings are not worth indexing.
+      ...products.map(product => ({ path: `/product/${product.slug}`, lastmod: product.updatedAt })),
+      ...posts.map(post => ({ path: `/blog/${post.slug}`, lastmod: post.updatedAt ?? post.publishedAt })),
+    ];
+
+    const url = (entry: Entry) => {
+      const lastmod = entry.lastmod ? `<lastmod>${escapeXml(new Date(entry.lastmod).toISOString())}</lastmod>` : "";
+      return `<url><loc>${escapeXml(baseUrl + entry.path)}</loc>${lastmod}</url>`;
+    };
+
+    const body = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${entries.map(url).join("")}</urlset>`;
     res.type("application/xml").send(body);
   });
   app.get("/api/realtime", (req, res) => {

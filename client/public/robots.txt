@@ -3,4 +3,4 @@ Allow: /
 Disallow: /api/
 Disallow: /#/admin
 Disallow: /#/dashboard
-Sitemap: https://devmarket.manus.space/sitemap.xml
+Sitemap: https://devmarket-azure.vercel.app/sitemap.xml

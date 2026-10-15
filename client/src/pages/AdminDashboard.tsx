@@ -27,7 +27,7 @@ const statusStyles: Record<string, string> = { PENDING: "bg-[#fff4c6] text-[#8a6
 
 function Metric({ label, value, detail, tone = "lime" }: { label: string; value: string; detail: string; tone?: "lime" | "coral" | "cream" }) {
   return (
-    <div className={`rounded-2xl border border-[#d7e8eb] p-5 ${tone === "lime" ? "bg-[#c7f76d]" : tone === "coral" ? "bg-[#13b8b0] text-white" : "bg-[#f8ffff]"}`}>
+    <div className={`rounded-2xl border border-[#d7e8eb] p-5 ${tone === "lime" ? "bg-[#c7f76d]" : tone === "coral" ? "bg-[#0c7a73] text-white" : "bg-[#f8ffff]"}`}>
       <p className={`font-mono text-[10px] uppercase tracking-[.16em] ${tone === "coral" ? "text-white/70" : "text-[#53617d]"}`}>{label}</p>
       <p className="mt-5 font-display text-4xl font-semibold tracking-[-.07em]">{value}</p>
       <p className={`mt-2 text-xs ${tone === "coral" ? "text-white/75" : "text-[#53617d]"}`}>{detail}</p>

@@ -65,7 +65,7 @@ export default function Hero() {
             {HERO.stats.map(stat => (
               <div key={stat.id} className="glass rounded-2xl p-4">
                 <dd className="font-display text-2xl font-semibold text-[#172039]">{stat.value}</dd>
-                <dt className="mt-1 font-mono text-[9px] uppercase tracking-[.12em] text-[#71809f]">{stat.label}</dt>
+                <dt className="mt-1 font-mono text-[9px] uppercase tracking-[.12em] text-[#5a6982]">{stat.label}</dt>
               </div>
             ))}
           </motion.dl>

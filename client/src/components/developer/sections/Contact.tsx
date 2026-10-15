@@ -50,7 +50,7 @@ export default function Contact() {
           >
             <a
               href={CONTACT.cta.href}
-              className="btn inline-flex min-h-12 items-center rounded-full bg-[#13b8b0] px-7 py-3.5 text-sm font-semibold text-white hover:bg-[#172039]"
+              className="btn inline-flex min-h-12 items-center rounded-full bg-[#0c7a73] px-7 py-3.5 text-sm font-semibold text-white hover:bg-[#172039]"
             >
               <Mail className="mr-2" size={16} aria-hidden="true" />
               {CONTACT.cta.label}
