@@ -40,15 +40,14 @@ const PAYMENT_METHODS: { label: string; src: string }[] = [
 /**
  * Bento grid for the storefront.
  *
- * Layout is deliberately uneven: a 4-column grid where the first tile takes two
- * columns and two rows, the second takes two columns, and the rest take one each.
- * An even 2x3 grid of identical cards is the thing bento is meant to replace — it
- * gives the section a focal point and lets the "why" tiles breathe.
+ * Layout uses a hierarchical 4-column grid with varied tile spans:
+ * - 1 hero tile: 2x2 (spans 2 cols, 2 rows) - the focal point
+ * - 1 wide tile: 2x1 (spans 2 cols, 1 row) - secondary emphasis
+ * - 4 small tiles: 1x1 each - supporting points
  *
- * Every tile is a single cell now. An earlier version made the first tile a
- * 2x2 hero, which read as a layout flourish rather than information and left the
- * project index on the developer page with no single left-to-right order to
- * follow. Uniform tiles also mean the grid has one rhythm to scan.
+ * This fills 10 cells in a 4-col grid (2.5 rows), creating natural visual
+ * hierarchy without empty cells. The grid uses auto-rows-[minmax(0,1fr)]
+ * for equal row heights and responsive cols: 1 on mobile, 2 on tablet, 4 on desktop.
  *
  * The per-tile colour is passed through as a CSS custom property, which the
  * `.bento-tile` rule mixes into its gradient. One rule therefore covers every
@@ -64,6 +63,8 @@ type BentoTile = {
   stat?: { value: string; label: string };
   /** Render the accepted payment marks, on the payment-related tile only. */
   showPayments?: boolean;
+  /** Grid span: "lg:col-span-2 lg:row-span-2" for hero, "lg:col-span-2" for wide, none for small. */
+  span?: string;
 };
 
 const TILES: BentoTile[] = [
@@ -75,6 +76,7 @@ const TILES: BentoTile[] = [
     tint: "#13b8b0",
     stat: { value: "Instant", label: "unlocked on payment" },
     showPayments: true,
+    span: "lg:col-span-2 lg:row-span-2",
   },
   {
     id: "checkout",
@@ -82,6 +84,7 @@ const TILES: BentoTile[] = [
     copy: "Card through Razorpay, or scan a QR and submit the proof — either way you reach a confirmed order.",
     icon: CreditCard,
     tint: "#7658f5",
+    span: "lg:col-span-2",
   },
   {
     id: "quality",
@@ -128,8 +131,11 @@ export default function BentoGrid() {
         </p>
       </div>
 
-      {/* One uniform grid. No hero tile and no spanning cells, so the eye reads the
-            whole set in a single rhythm instead of hunting for a focal point. */}
+      {/* Hierarchical bento grid: 4-column base with varied spans for visual hierarchy.
+          - Hero: 2x2 (lg:col-span-2 lg:row-span-2)
+          - Wide: 2x1 (lg:col-span-2)
+          - Small: 1x1 (no span)
+          Grid base: auto-rows-[minmax(0,1fr)] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 */}
       <div className="grid auto-rows-[minmax(0,1fr)] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {TILES.map(tile => {
           const Icon = tile.icon;
@@ -137,7 +143,7 @@ export default function BentoGrid() {
             <article
               key={tile.id}
               style={{ "--bento-tint": tile.tint } as React.CSSProperties}
-              className="bento-tile flex flex-col p-7"
+              className={`bento-tile flex flex-col p-7 ${tile.span ?? ""}`}
             >
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/70 text-[#172039] shadow-[inset_0_1px_0_rgba(255,255,255,.9)]">
                 <Icon size={20} aria-hidden="true" />
@@ -180,9 +186,7 @@ export default function BentoGrid() {
                 </ul>
               ) : null}
 
-              <h3
-                className={`${tile.stat ? "mt-9" : "mt-10"} font-display text-lg font-semibold tracking-[-.03em] text-[#172039]`}
-              >
+              <h3 className="mt-9 font-display text-lg font-semibold tracking-[-.03em] text-[#172039]">
                 {tile.title}
               </h3>
               <p className="mt-2 text-sm leading-6 text-[#53617d]">{tile.copy}</p>
