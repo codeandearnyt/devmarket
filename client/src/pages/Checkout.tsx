@@ -1,9 +1,10 @@
 import { ArrowLeft, CheckCircle2, CreditCard, Loader2, LockKeyhole, QrCode, Star, UploadCloud } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useRoute } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { money, priceLabel, typeLabel } from "@/lib/format";
+import { applyPageMeta } from "@/lib/seo";
 import ProductShowcase from "@/components/ProductShowcase";
 import ScrollDepthBackground from "@/components/ScrollDepthBackground";
 import SiteFooter from "@/components/SiteFooter";
@@ -42,6 +43,25 @@ export function ProductDetails() {
   const [reviewRating, setReviewRating] = useState(5);
   const [leaving, setLeaving] = useState(false);
   const [reviewText, setReviewText] = useState("");
+
+  /**
+   * Per-listing metadata.
+   *
+   * Every product page was inheriting the generic site title, description and
+   * og:tags from index.html, and its canonical pointed at the homepage - so the
+   * sitemap asked crawlers to index nine listing URLs while each page insisted
+   * it was "/". That is enough to drop the listings from the index entirely.
+   */
+  useEffect(() => {
+    if (!product) return;
+    return applyPageMeta({
+      title: `${product.title} | DevMarket`,
+      description: (product.shortDescription || product.description || "").slice(0, 160),
+      image: product.thumbnailUrl || null,
+      path: `/product/${product.slug}`,
+    });
+  }, [product]);
+
   if (!product) return <ShopShell><SiteHeader /><div className="p-8 text-center text-[#53617d]">Loading product…</div></ShopShell>;
   const current = product.discountPrice ?? product.price;
   const reviews = reviewsQuery.data;
@@ -185,6 +205,9 @@ export function ProductDetails() {
 
 export default function Checkout() {
   const [, params] = useRoute("/checkout/:slug");
+  // A payment step has no business in a search index, and a checkout URL
+  // outranking its own product page is the worst outcome available here.
+  useEffect(() => applyPageMeta({ title: "Checkout | DevMarket", noindex: true }), []);
   const [, navigate] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const productQuery = trpc.catalog.productBySlug.useQuery({ slug: params?.slug ?? "" }, { enabled: Boolean(params?.slug) });

@@ -3,6 +3,7 @@ import SiteFooter from "@/components/SiteFooter";
 import SiteHeader from "@/components/SiteHeader";
 import ScrollDepthBackground from "@/components/ScrollDepthBackground";
 import "@/styles/developer.css";
+import { applyPageMeta } from "@/lib/seo";
 import Hero from "@/components/developer/sections/Hero";
 import Story from "@/components/developer/sections/Story";
 import TechStack from "@/components/developer/sections/TechStack";
@@ -33,9 +34,11 @@ const Contact = lazy(() => import("@/components/developer/sections/Contact"));
  * All copy lives in `lib/developerContent.ts`.
  */
 export default function Developer() {
-  useEffect(() => {
-    document.title = "Nitin Sharma — Developer Profile | DevMarket";
-  }, []);
+  useEffect(() => applyPageMeta({
+    title: "Nitin Sharma — Developer Profile | DevMarket",
+    description: "Developer profile: skills, stack, shipped projects and how Nitin approaches building digital products.",
+    path: "/developer",
+  }), []);
 
   return (
     <div className="dev-profile liquid-page min-h-screen overflow-hidden bg-[#eef8fa] text-[#172039]">

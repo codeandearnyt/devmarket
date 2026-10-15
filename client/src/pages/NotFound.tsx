@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { ArrowLeft, Compass, Home } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import { applyPageMeta } from "@/lib/seo";
 import ScrollDepthBackground from "@/components/ScrollDepthBackground";
 import { useEffect } from "react";
 
@@ -13,7 +14,9 @@ const suggestions = [
 
 export default function NotFound() {
   useEffect(() => {
-    document.title = "Page not found | DevMarket";
+    // A soft 404 has no business in an index, and indexing it competes with
+    // a real page for the same query.
+    return applyPageMeta({ title: "Page not found | DevMarket", noindex: true });
   }, []);
 
   return (

@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, CalendarDays, Tag } from
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { applyPageMeta } from "@/lib/seo";
 import { useRealtime } from "@/hooks/useRealtime";
 import ScrollDepthBackground from "@/components/ScrollDepthBackground";
 import NewsletterSignup from "@/components/NewsletterSignup";
@@ -12,7 +13,11 @@ export default function Blog() {
   useRealtime("storefront");
   const [page, setPage] = useState(1);
   const posts = trpc.blog.list.useQuery({ page, pageSize: 6 });
-  useEffect(() => { document.title = "The DevMarket Blog — Practical Ideas for Builders"; }, []);
+  useEffect(() => applyPageMeta({
+    title: "The DevMarket Blog — Practical Ideas for Builders",
+    description: "Practical notes on AI-assisted development, digital products, and the small decisions that turn a rough idea into useful work.",
+    path: "/blog",
+  }), []);
   const data = posts.data;
 
   return <div className="liquid-page min-h-screen overflow-hidden bg-[#eef8fa] text-[#172039]"><ScrollDepthBackground />

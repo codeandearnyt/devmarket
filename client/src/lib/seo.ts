@@ -11,9 +11,11 @@ export type PageMeta = {
   description?: string | null;
   image?: string | null;
   path?: string | null;
+  /** Keep this route out of search indexes. Used for checkout. */
+  noindex?: boolean;
 };
 
-export function applyPageMeta({ title, description, image, path }: PageMeta) {
+export function applyPageMeta({ title, description, image, path, noindex }: PageMeta) {
   if (typeof document === "undefined") return () => {};
 
   const previousTitle = document.title;
@@ -38,15 +40,34 @@ export function applyPageMeta({ title, description, image, path }: PageMeta) {
   upsertMeta("property", "og:type", "article");
   upsertMeta("property", "og:image", image);
 
-  let canonical = document.head.querySelector('link[rel="canonical"]');
-  const href = path ? new URL(path, window.location.origin).href : window.location.href;
-  if (!canonical) {
-    canonical = document.createElement("link");
-    canonical.setAttribute("rel", "canonical");
-    document.head.appendChild(canonical);
-    created.push(canonical);
+  // og:url has to track the route. Left static, a product page inherited the
+  // homepage's URL from index.html and told every share card and crawler that
+  // /product/<slug> was really "/".
+  if (typeof window !== "undefined") {
+    const href = path ? new URL(path, window.location.origin).href : window.location.href;
+    upsertMeta("property", "og:url", href);
+
+    const robots = document.head.querySelector('meta[name="robots"]');
+    if (noindex) {
+      upsertMeta("name", "robots", "noindex, nofollow");
+    } else if (robots) {
+      robots.remove();
+    }
   }
-  canonical.setAttribute("href", href);
+
+  let canonical = document.head.querySelector('link[rel="canonical"]');
+  const href = typeof window !== "undefined"
+    ? (path ? new URL(path, window.location.origin).href : window.location.href)
+    : null;
+  if (href) {
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.setAttribute("rel", "canonical");
+      document.head.appendChild(canonical);
+      created.push(canonical);
+    }
+    canonical.setAttribute("href", href);
+  }
 
   return () => {
     document.title = previousTitle;
