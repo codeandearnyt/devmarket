@@ -1,40 +1,40 @@
 import { BadgeCheck, Code2, CreditCard, Download, Images, ShieldCheck, Sparkles, Zap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import ApplePay from "@/assets/apple-pay-icon.svg";
-import FamPay from "@/assets/fampay.svg";
-import Government from "@/assets/government-icon.svg";
 import Mastercard from "@/assets/master-card-icon.svg";
 import Razorpay from "@/assets/razorpay-icon.svg";
-import UsdCoin from "@/assets/us-dollar-coin-color-icon.svg";
 import Upi from "@/assets/upi-payment-icon.svg";
 import Visa from "@/assets/visa-icon.svg";
 
 /**
  * Payment marks shown on the payment tile.
  *
+ * THIS LIST IS THE PRODUCT CLAIM, so it lists only what checkout can actually
+ * take today: Razorpay for cards (Visa and Mastercard are the networks it
+ * settles), and UPI by manual QR transfer. Apple Pay, FamPay, the USD coin and
+ * the government-payment mark were removed because none of them is wired - a
+ * buyer who sees an Apple Pay logo and then finds only two ways to pay has been
+ * misled on the storefront, which is the one surface a shopper actually reads.
+ * The artwork stays in the repo, unused, ready if those integrations land.
+ *
  * Each one is an <img> rather than an inline SVG because they are supplied
  * brand artwork: inlining would let a stray CSS rule recolour a payment logo,
  * and payment marks are exactly the kind of thing that has to look right.
  *
- * Their aspect ratios differ a lot (Razorpay is 4.6:1, FamPay and the USD coin
- * are 1:1), so each logo sits inside a fixed chip with object-contain.
- * Scaling them to a common *height* instead would let the Razorpay wordmark
- * stretch to four times the width of the Visa mark.
+ * Their aspect ratios differ a lot (Razorpay is 4.6:1, the UPI mark is 3:1), so
+ * each logo sits inside a fixed chip with object-contain. Scaling them to a
+ * common *height* instead would let the Razorpay wordmark stretch to four times
+ * the width of the Visa mark.
  *
- * Two columns, not four: the tiles are uniform now rather than one wide hero, so
- * a cell is about 110px. Four across left ~52px, which squeezed the wide marks
- * down to 6px tall - too small to recognise as a payment logo at all.
+ * Two columns, not four: a cell is about 110px. Four across left ~52px, which
+ * squeezed the wide marks down to 6px tall - too small to recognise as a
+ * payment logo at all.
  */
 const PAYMENT_METHODS: { label: string; src: string }[] = [
+  { label: "Razorpay", src: Razorpay },
   { label: "UPI", src: Upi },
   { label: "Visa", src: Visa },
   { label: "Mastercard", src: Mastercard },
-  { label: "Razorpay", src: Razorpay },
-  { label: "Apple Pay", src: ApplePay },
-  { label: "FamPay", src: FamPay },
-  { label: "USD", src: UsdCoin },
-  { label: "Government payments", src: Government },
 ];
 
 /**
@@ -86,7 +86,7 @@ const TILES: BentoTile[] = [
   {
     id: "checkout",
     title: "Checkout that does not stall",
-    copy: "Card through Razorpay, or scan a QR and submit the proof — either way you reach a confirmed order.",
+    copy: "Card through Razorpay, or pay by UPI and send the screenshot for review — either way you reach a confirmed order.",
     icon: CreditCard,
     tint: "#7658f5",
     span: "lg:col-span-2",

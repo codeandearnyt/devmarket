@@ -516,17 +516,16 @@ export default function PaymentsPanel({
         )}
       </div>
 
-      {/* Stated in the product copy on the home page: the bento payment tile
-          shows marks for UPI, Apple Pay, FamPay, USD and government payments.
-          Checkout wires only Razorpay and manual QR today. Rather than let an
-          operator assume each mark is a live gateway, the gap is written down
-          here where the money actually lands. */}
+      {/* What an operator sees here and what a buyer sees on the storefront tile
+          have to agree. The tile lists only the two things checkout can
+          actually take, so this note records the same boundary from the other
+          side rather than contradicting it. */}
       <p className="mt-8 flex items-start gap-2 text-xs leading-6 text-[#55697a]">
         <CircleDollarSign size={14} className="mt-1 shrink-0" aria-hidden="true" />
         <span>
-          Two gateways are live: Razorpay for cards, and manual UPI QR where the buyer
-          uploads a screenshot for review. The extra marks on the storefront payment tile
-          are not separate integrations yet.
+          Two methods are live: Razorpay for cards, and manual UPI QR where the buyer
+          uploads a screenshot for review. Anything not shown on the storefront
+          payment tile is not wired up here either.
         </span>
       </p>
     </section>
