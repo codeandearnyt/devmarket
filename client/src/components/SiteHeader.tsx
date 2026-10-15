@@ -58,7 +58,7 @@ export default function SiteHeader({
         <Link href="/" className="flex shrink-0 items-center gap-3" aria-label="DevMarket home">
           <img src={DevMarketIcon} alt="" className="h-9 w-9 rounded-lg object-contain" />
           <span className="hidden font-display text-xl font-bold tracking-[-.05em] min-[420px]:inline">
-            dev<span className="text-[#13b8b0]">market</span>
+            Dev<span className="text-[#13b8b0]">Market</span>
           </span>
         </Link>
 

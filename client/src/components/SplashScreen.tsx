@@ -57,7 +57,7 @@ export default function SplashScreen({ exiting = false }: { exiting?: boolean })
         />
 
         <p className="splash-item mt-4 font-display text-3xl font-bold tracking-[-.05em] text-white sm:text-4xl">
-          dev<span className="text-[#13b8b0]">market</span>
+          Dev<span className="text-[#13b8b0]">Market</span>
         </p>
 
         <div className="splash-item mt-7">

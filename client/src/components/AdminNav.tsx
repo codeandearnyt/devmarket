@@ -147,7 +147,7 @@ export default function AdminNav({
         <Link href="/" className="flex min-w-0 items-center gap-2">
           <img src={DevMarketIcon} alt="" className="h-8 w-8 shrink-0 rounded-lg object-contain" />
           <span className="truncate font-display text-base font-bold tracking-[-.05em]">
-            dev<span className="text-[#13b8b0]">market</span>
+            Dev<span className="text-[#13b8b0]">Market</span>
           </span>
           <span className="shrink-0 rounded-full bg-[#c7f76d] px-2 py-0.5 font-mono text-[8px] uppercase tracking-[.12em] text-[#172039]">
             admin
@@ -203,7 +203,7 @@ export default function AdminNav({
               <Link href="/" className="flex items-center gap-3">
                 <img src={DevMarketIcon} alt="" className="h-9 w-9 rounded-xl object-contain" />
                 <span className="font-display text-lg font-bold tracking-[-.05em]">
-                  dev<span className="text-[#13b8b0]">market</span>
+                  Dev<span className="text-[#13b8b0]">Market</span>
                 </span>
               </Link>
             </div>
@@ -220,7 +220,7 @@ export default function AdminNav({
           <Link href="/" className="flex items-center gap-3">
             <img src={DevMarketIcon} alt="" className="h-9 w-9 rounded-xl object-contain" />
             <span className="font-display text-xl font-bold tracking-[-.05em]">
-              dev<span className="text-[#13b8b0]">market</span>
+              Dev<span className="text-[#13b8b0]">Market</span>
             </span>
             <span className="ml-1 rounded-full bg-[#c7f76d] px-2 py-1 font-mono text-[8px] uppercase tracking-[.12em] text-[#172039]">
               admin

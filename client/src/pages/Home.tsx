@@ -41,13 +41,11 @@ export default function Home() {
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
   const [sort, setSort] = useState<"newest" | "price" | "popular">("popular");
-  const featuredQuery = trpc.catalog.featured.useQuery();
   const typesQuery = trpc.catalog.types.useQuery();
   const productFilters = useMemo(() => ({ categoryId: activeCategory, type: activeType === "ALL" ? undefined : activeType, search: search.trim() || undefined, minPrice: minPrice ? Number(minPrice) : undefined, maxPrice: maxPrice ? Number(maxPrice) : undefined, sort }), [activeCategory, activeType, search, minPrice, maxPrice, sort]);
   const productsQuery = trpc.catalog.products.useQuery(productFilters);
   const categoriesQuery = trpc.catalog.categories.useQuery();
   const allProducts = (productsQuery.data ?? []) as ProductCardData[];
-  const featured = (featuredQuery.data ?? []) as ProductCardData[];
   const filtered = useMemo(() => allProducts.filter(p => (activeType === "ALL" || p.type === activeType) && `${p.title} ${p.shortDescription}`.toLowerCase().includes(search.toLowerCase())), [allProducts, activeType, search]);
   const categories = categoriesQuery.data ?? [];
   const typeTabs = useMemo(() => [
@@ -78,7 +76,7 @@ export default function Home() {
         {filtered.length ? <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">{filtered.map((product, i) => <ProductCard key={product.id} product={product} index={i} />)}</div> : <div className="rounded-2xl border border-dashed border-[#b9d6db] p-14 text-center text-[#53617d]">No products match that search yet.</div>}
       </section>
 
-      <section className="border-y border-[#d7e8eb] bg-[#e9f7f6] py-20"><div className="mx-auto grid max-w-[1280px] gap-10 px-5 lg:grid-cols-[.75fr_1.25fr] lg:px-8"><div><p className="font-mono text-[11px] uppercase tracking-[.2em] text-[#13b8b0]">Editor’s picks</p><h2 className="mt-3 max-w-sm font-display text-4xl font-semibold leading-[.98] tracking-[-.06em]">Start with something proven.</h2><p className="mt-5 max-w-sm text-[#53617d]">The highest-signal resources in the library, selected for teams who care about craft.</p></div><div className="grid gap-5 sm:grid-cols-3">{featured.map((product, i) => <ProductCard key={product.id} product={product} index={i} />)}</div></div></section>
+
 
       <section id="how-it-works" className="mx-auto max-w-[1280px] px-5 py-20 lg:px-8"><div className="mb-10 flex items-end justify-between"><div><p className="font-mono text-[11px] uppercase tracking-[.2em] text-[#13b8b0]">Simple by design</p><h2 className="mt-3 font-display text-4xl font-semibold tracking-[-.06em] md:text-5xl">From browse to build.</h2></div><span className="hidden font-mono text-[10px] uppercase tracking-[.16em] text-[#71809f] md:block">No subscriptions. Own it forever.</span></div><div className="grid gap-4 md:grid-cols-3">{[{ n: "01", icon: <FolderOpen />, title: "Pick your shortcut", copy: "Browse focused resources built by people who ship. Every product has a clear use case and honest preview." }, { n: "02", icon: <Sparkles />, title: "Pay once, access instantly", copy: "Checkout securely with Razorpay or submit a UPI proof for admin review. No hidden fees or recurring plans." }, { n: "03", icon: <Check />, title: "Make it yours", copy: "Your purchase unlocks a secure download. Remix, customize, and get back to the work that matters." }].map(item => <div key={item.n} className="rounded-2xl border border-[#d7e8eb] bg-[#f8ffff] p-7"><div className="flex items-center justify-between"><span className="font-mono text-sm text-[#13b8b0]">{item.n}</span><div className="text-[#13b8b0]">{item.icon}</div></div><h3 className="mt-14 font-display text-2xl font-semibold tracking-[-.04em]">{item.title}</h3><p className="mt-3 leading-7 text-[#53617d]">{item.copy}</p></div>)}</div></section>
 

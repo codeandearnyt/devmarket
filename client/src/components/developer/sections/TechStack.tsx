@@ -32,7 +32,7 @@ export default function TechStack() {
         <div className="flex items-baseline justify-between gap-6 border-b border-[#b9d6db] pb-4">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-[.2em] text-[#13b8b0]">Tools of the trade</p>
-            <p className="mt-1.5 font-display text-lg font-semibold tracking-[-.03em] text-[#172039]">
+            <p className="mt-1.5 type-sans text-xl font-semibold tracking-[-.03em] text-[#172039]">
               {TECH_STACK.length} technologies I reach for
             </p>
           </div>
@@ -59,7 +59,7 @@ export default function TechStack() {
               <span
                 key={`${tool.slug}-${index}`}
                 aria-hidden={index >= TECH_STACK.length ? "true" : undefined}
-                className="group flex shrink-0 items-center gap-2.5 rounded-full border border-[#b9d6db] bg-[#f8ffff] py-2.5 pl-3 pr-4 transition-[transform,box-shadow,border-color] duration-200 ease-[cubic-bezier(.23,1,.32,1)] hover:-translate-y-0.5 hover:border-[#13b8b0] hover:shadow-[0_8px_20px_rgba(19,184,176,.18)]"
+                className="group flex shrink-0 items-center gap-3 rounded-full border border-[#b9d6db] bg-[#f8ffff] py-3 pl-3.5 pr-5 transition-[transform,box-shadow,border-color] duration-200 ease-[cubic-bezier(.23,1,.32,1)] hover:-translate-y-0.5 hover:border-[#13b8b0] hover:shadow-[0_8px_20px_rgba(19,184,176,.18)]"
               >
                 <img
                   src={`/logos/${tool.slug}.svg`}
@@ -68,9 +68,9 @@ export default function TechStack() {
                   height={18}
                   loading="lazy"
                   decoding="async"
-                  className="h-[18px] w-[18px] shrink-0 transition-transform duration-200 group-hover:scale-110"
+                  className="h-[26px] w-[26px] shrink-0 transition-transform duration-200 group-hover:scale-110"
                 />
-                <span className="font-mono text-xs uppercase tracking-[.12em] text-[#172039] transition-colors duration-200 group-hover:text-[#0b7c77]">
+                <span className="type-mono text-[13px] font-semibold uppercase tracking-[.12em] text-[#172039] transition-colors duration-200 group-hover:text-[#0b7c77]">
                   {tool.name}
                 </span>
               </span>
@@ -84,10 +84,10 @@ export default function TechStack() {
         {TECH_STACK.map(tool => (
           <li
             key={tool.slug}
-            className="flex items-center gap-2 rounded-full border border-[#b9d6db] bg-[#f8ffff] px-4 py-2"
+            className="flex items-center gap-2 rounded-full border border-[#b9d6db] bg-[#f8ffff] px-4 py-2.5"
           >
-            <img src={`/logos/${tool.slug}.svg`} alt="" width={18} height={18} loading="lazy" decoding="async" className="h-[18px] w-[18px]" />
-            <span className="font-mono text-[11px] uppercase tracking-[.12em] text-[#172039]">{tool.name}</span>
+            <img src={`/logos/${tool.slug}.svg`} alt="" width={26} height={26} loading="lazy" decoding="async" className="h-[26px] w-[26px]" />
+            <span className="type-mono text-xs font-semibold uppercase tracking-[.1em] text-[#172039]">{tool.name}</span>
           </li>
         ))}
       </ul>
